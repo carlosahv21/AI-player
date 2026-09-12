@@ -14,6 +14,12 @@ import type {
   VideoPayload,
 } from "./types";
 import { ALLOWED_RATES } from "./types";
+import {
+  fitRange,
+  fitSections,
+  reportCoverage,
+  reportSectionFit,
+} from "./duration";
 
 export type PlayerStore = PlayerState & PlayerActions;
 
@@ -349,9 +355,45 @@ export function createPlayerStore(): PlayerStoreInstance {
     });
   },
 
+  /**
+   * The media's metadata is the authority on duration, and reconciling it is
+   * this one action's job.
+   *
+   * The payload's `duration` seeds the store so the bar has a scale before
+   * the video loads, but sections were authored against that same estimate.
+   * When the real number disagrees, everything reading sections computes
+   * against a timeline that does not exist — so the sections and any loop are
+   * cut to fit here, once, and the trim is reported.
+   */
   _onDurationChange: (d) => {
-    if (!get().video) return;
-    set({ duration: Math.max(0, d) });
+    const { video, duration: previous, loop, currentTime } = get();
+    if (!video) return;
+    const duration = Math.max(0, d);
+    if (duration === previous) return;
+    if (duration <= 0) {
+      set({ duration });
+      return;
+    }
+
+    const fit = fitSections(video.sections, duration);
+    if (fit.adjustments.length > 0) {
+      reportSectionFit(video.id, fit.adjustments, previous, duration);
+    }
+    reportCoverage(video.id, fit.sections, duration);
+
+    const nextVideo =
+      fit.sections === video.sections
+        ? video
+        : { ...video, sections: fit.sections, duration };
+    const time = clamp(currentTime, 0, duration);
+
+    set({
+      duration,
+      video: nextVideo,
+      loop: fitRange(loop, duration),
+      currentTime: time,
+      activeSectionId: sectionIdAt(nextVideo, time),
+    });
   },
 
   _onStatusChange: (s) => {

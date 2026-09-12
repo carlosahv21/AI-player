@@ -94,15 +94,31 @@ export function usePreviewSprite(
 
     let cancelled = false;
     fetch(preview.vttUrl)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((text) => {
         if (cancelled) return;
         const cues = parsePreviewVtt(text);
-        setData(cues.length > 0 ? { spriteUrl: preview.spriteUrl, cues } : null);
+        if (cues.length === 0) {
+          console.warn(
+            `[aivp] el VTT de miniaturas (${preview.vttUrl}) no tiene cues ` +
+              `válidos; se continúa sin vista previa.`,
+          );
+          setData(null);
+          return;
+        }
+        setData({ spriteUrl: preview.spriteUrl, cues });
       })
-      // a broken sprite is a missing nicety, not an error worth surfacing
-      .catch(() => {
-        if (!cancelled) setData(null);
+      // Degrading, not failing: the timeline, its scrubbing and the loop panel
+      // all work without thumbnails, so a missing sprite must never reach the
+      // store's error state and blank the player. Logged, because a 404 here
+      // is a plugin misconfiguration someone can fix.
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.warn(
+          `[aivp] no se pudieron cargar las miniaturas (${preview.vttUrl}):`,
+          error,
+        );
+        setData(null);
       });
 
     return () => {

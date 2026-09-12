@@ -117,6 +117,37 @@ export function useVideoGestures({
     if (restore !== null) setPlaybackRate(restore);
   }, [setPlaybackRate]);
 
+  /**
+   * Every way a hold can end without a `pointerup` on the surface.
+   *
+   * The gesture rates go to 4x and the menu only reaches 2x, so a hold left
+   * running is a speed the user cannot see in the UI and cannot undo from it
+   * either — the video just plays at 4x forever. `pointercancel` covers the
+   * browser taking the pointer (a scroll or system gesture claiming it), and
+   * `blur`/`visibilitychange` cover the pointer leaving with the page: an
+   * alt-tab, a phone call, a tab switch. None of them fire `pointerup`.
+   *
+   * On window, not the element: once the pointer or the page is gone, the
+   * surface is exactly what stops receiving events.
+   */
+  useEffect(() => {
+    const recover = () => {
+      clearTimers();
+      endHold();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") recover();
+    };
+    window.addEventListener("pointercancel", recover);
+    window.addEventListener("blur", recover);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pointercancel", recover);
+      window.removeEventListener("blur", recover);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [endHold]);
+
   const showFlash = (dir: "back" | "forward") => {
     flashKey.current += 1;
     setFlash({ key: flashKey.current, dir, seconds: SEEK_SECONDS });

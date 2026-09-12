@@ -24,6 +24,10 @@ const FETCH_ERROR = {
  * Samples are scaled to 0..1 against the array's own peak: the aggregator
  * counts sessions per bucket, and what the curve shows is relative interest,
  * not an absolute session count.
+ *
+ * Bad samples are dropped individually and logged, never in silence. Only when
+ * more than half the array is unusable is the whole curve discarded — at that
+ * point it would be a shape drawn from a minority of the measurements.
  */
 export function sanitizeHeatmap(payload: VideoPayload): VideoPayload {
   const raw = payload.heatmap;
@@ -35,16 +39,48 @@ export function sanitizeHeatmap(payload: VideoPayload): VideoPayload {
   // strings become samples.
   // typed as unknown[] on purpose: the declared number[] is what the contract
   // promises, not what a filter or a hand-edited meta can actually send
-  const nums = (raw as unknown[])
-    .map((v) => {
-      if (typeof v === "number") return v;
-      if (typeof v === "string" && v.trim() !== "") return Number(v);
-      return NaN;
-    })
-    .filter(Number.isFinite);
+  const parsed = (raw as unknown[]).map((v) => {
+    if (typeof v === "number") return v;
+    if (typeof v === "string" && v.trim() !== "") return Number(v);
+    return NaN;
+  });
+  const nums = parsed.filter(Number.isFinite);
+  const dropped = parsed.length - nums.length;
+
+  // Partial damage keeps the good samples. One bad value used to void the
+  // whole curve with nothing logged — the worst of both, since the data was
+  // gone AND nobody knew why. The curve is relative interest, so losing a few
+  // buckets skews its shape slightly; losing all of it hides a real signal.
+  if (dropped > 0 && nums.length >= 2 && dropped <= parsed.length / 2) {
+    console.warn(
+      `[aivp] video ${payload.id}: ${dropped} de ${parsed.length} muestras del ` +
+        `heatmap no son números finitos y se descartaron. La curva se dibuja ` +
+        `con las ${nums.length} restantes; revisa el origen de los datos.`,
+    );
+  }
+
+  // More than half bad is not damage to work around, it is the wrong data.
+  // Interpolating a curve from a minority of the buckets would draw a shape
+  // nobody measured, so the field goes and the component renders nothing.
+  if (dropped > parsed.length / 2) {
+    console.error(
+      `[aivp] video ${payload.id}: ${dropped} de ${parsed.length} muestras del ` +
+        `heatmap son inválidas (más de la mitad). Se descarta la curva entera.`,
+    );
+    return { ...payload, heatmap: null };
+  }
+
   // fewer than two points cannot describe a curve; drop the field entirely so
   // the component's own guard skips rendering instead of drawing a flat line
-  if (nums.length < 2) return { ...payload, heatmap: null };
+  if (nums.length < 2) {
+    if (parsed.length >= 2) {
+      console.error(
+        `[aivp] video ${payload.id}: el heatmap queda con ${nums.length} muestra(s) ` +
+          `válida(s), insuficientes para una curva. Se descarta.`,
+      );
+    }
+    return { ...payload, heatmap: null };
+  }
 
   const peak = Math.max(...nums);
   const heatmap =

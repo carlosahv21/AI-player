@@ -283,8 +283,9 @@ describe("the played fill", () => {
 });
 
 // The samples cross a trust boundary: WordPress serves them, and a filter or a
-// hand-edited meta can put anything in the array. One NaN reaches the `d`
-// attribute and blanks the entire curve with no error anywhere.
+// hand-edited meta can put anything in the array. One NaN reaching the `d`
+// attribute blanks the entire curve, so bad samples are dropped individually
+// and logged; only a majority-invalid array voids the curve outright.
 describe("sanitizeHeatmap", () => {
   const base = { duration: 100 } as VideoPayload;
 
@@ -294,8 +295,24 @@ describe("sanitizeHeatmap", () => {
   });
 
   it("drops non-finite values instead of passing NaN to the path", () => {
-    const dirty = [10, "x", null, Infinity, NaN, 20] as unknown as number[];
+    // one bad sample in six: the curve survives on the rest, which is the
+    // whole point — a single NaN used to void every good sample with it
+    const dirty = [10, 20, NaN, 30, 40, 20] as unknown as number[];
+    expect(sanitizeHeatmap({ ...base, heatmap: dirty }).heatmap).toEqual([
+      0.25, 0.5, 0.75, 1, 0.5,
+    ]);
+  });
+
+  it("keeps the good samples with mixed junk, up to half the array", () => {
+    const dirty = [10, "x", null, 20] as unknown as number[];
     expect(sanitizeHeatmap({ ...base, heatmap: dirty }).heatmap).toEqual([0.5, 1]);
+  });
+
+  it("discards the whole curve when more than half is invalid", () => {
+    // 4 of 6 unusable: what is left is a shape nobody measured, so drawing it
+    // would be worse than drawing nothing
+    const mostlyJunk = [10, "x", null, Infinity, NaN, 20] as unknown as number[];
+    expect(sanitizeHeatmap({ ...base, heatmap: mostlyJunk }).heatmap).toBeNull();
   });
 
   it("nulls the field when fewer than two samples survive", () => {

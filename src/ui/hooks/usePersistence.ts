@@ -8,6 +8,7 @@ import {
   savePrefs,
   saveVideoState,
 } from "../../core/persistence";
+import { fitRange } from "../../core/duration";
 
 export interface LoopOffer {
   videoId: number;
@@ -52,7 +53,12 @@ export function usePersistence(): {
       if (!stored) return;
       const at = resumePosition(stored.lastPosition, duration);
       if (at > 0) useStore.getState().seek(at);
-      if (stored.loop) setOffer({ videoId: id, loop: stored.loop });
+      // A loop saved against a longer cut of this video points at time the
+      // current one does not have, and setLoop rejects `end > duration`
+      // outright — so the offer would appear and then quietly do nothing when
+      // accepted. Trimmed to what exists, or not offered at all.
+      const loop = fitRange(stored.loop, duration);
+      if (loop) setOffer({ videoId: id, loop });
     };
 
     const s = useStore.getState();
@@ -86,7 +92,10 @@ export function usePersistence(): {
     offer,
     acceptOffer: () => {
       if (!offer) return;
-      useStore.getState().setLoop(offer.loop.start, offer.loop.end);
+      // trimmed again here: the offer may have been built while `duration` was
+      // still the payload's estimate, before loadedmetadata corrected it
+      const loop = fitRange(offer.loop, useStore.getState().duration);
+      if (loop) useStore.getState().setLoop(loop.start, loop.end);
       setOffer(null);
     },
     dismissOffer: () => setOffer(null),

@@ -13,10 +13,11 @@ export interface VideoPayload {
   features: PlayerFeatures;
   /**
    * Sprite sheet + WebVTT map for timeline thumbnails, as Bunny generates
-   * them. Optional on purpose: when absent (or null) no preview is rendered
-   * and everything else behaves identically. The player never depends on it.
+   * them. `null` is a first-class value, not an absence: the plugin always
+   * sends the key, and when it is null no preview is rendered and everything
+   * else behaves identically. The player never depends on it.
    */
-  preview?: PreviewSource | null;
+  preview: PreviewSource | null;
   /**
    * Engagement samples in 0..1, spread evenly across the whole duration, for
    * the timeline heatmap. Optional like `preview`: absent means no curve is
@@ -177,6 +178,22 @@ export const PLAYBACK_RATES: readonly PlaybackRate[] = [
 /**
  * Every rate the store will accept. Wider than the menu so press-and-hold can
  * push past 2x, while `setPlaybackRate` still rejects arbitrary numbers.
+ *
+ * The asymmetry is deliberate and load-bearing in three places:
+ *
+ * - the menu (`PLAYBACK_RATES`) stops at 2x, because above it the video is no
+ *   longer watchable and there would be no way back from a rate the user
+ *   parked in by accident;
+ * - the store accepts up to 4x, because press-and-hold needs somewhere to go;
+ * - persistence validates against the MENU list, not this one, so a gesture
+ *   rate can never be restored on the next visit. `isRate` in persistence.ts
+ *   is the guard, and `usePersistence` writes the live state continuously —
+ *   so a 4x is written but filtered out on read, and a hold interrupted
+ *   without `pointerup` is restored by `useVideoGestures` rather than left
+ *   for the reader to discover.
+ *
+ * Widening the menu past 2x therefore also widens what persists. That is the
+ * coupling to keep in mind before editing either list.
  */
 export const ALLOWED_RATES: readonly PlaybackRate[] = [
   ...PLAYBACK_RATES,

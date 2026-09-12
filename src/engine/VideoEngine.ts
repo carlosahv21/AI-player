@@ -167,9 +167,25 @@ export class VideoEngine {
       this.element.currentTime = state.currentTime;
     }
 
-    if (state.status === "playing" && this.element.paused) {
-      this.playElement();
-    } else if (
+    // The status is what decides, and only one branch may run per pass.
+    //
+    // Replaying a finished video used to hit both: store.play() sets
+    // currentTime 0 AND status "playing" in one set(), so this pass seeked to
+    // 0 and called play() — then the element fired its own `ended`, the store
+    // went back to "ended", and the next pass called pause() while that play()
+    // was still resolving. The play() rejected with AbortError, the catch
+    // below forced "paused", and the video sat at 0 refusing to start: the
+    // play/pause flicker at the end of every video.
+    //
+    // `element.ended` is the guard: once the element has ended, a seek to 0 is
+    // a replay in progress, so pausing it is wrong even while the store still
+    // says "ended" for one more tick.
+    if (state.status === "playing") {
+      if (this.element.paused) this.playElement();
+      return;
+    }
+
+    if (
       (state.status === "paused" || state.status === "ended") &&
       !this.element.paused
     ) {
@@ -178,7 +194,13 @@ export class VideoEngine {
   }
 
   private playElement(): void {
-    void this.element.play().catch(() => {
+    void this.element.play().catch((err: unknown) => {
+      // AbortError is the browser resolving a race — a pause() or a load()
+      // landed while this play() was still pending. It says nothing about
+      // whether playback can happen, and treating it as a failure is what
+      // stranded a replayed video paused at 0. A real refusal (autoplay
+      // policy, decode error) still reports itself.
+      if (err instanceof DOMException && err.name === "AbortError") return;
       this.store.actions._onStatusChange("paused");
     });
   }
@@ -325,10 +347,10 @@ export class VideoEngine {
   };
 
   private onWaiting = (): void => {
+    // only a stall during playback is a buffering state; a `waiting` while
+    // paused or seeking is not something to show a spinner for
     if (this.store.getState().status === "playing") {
-    if (this.store.getState().status !== "loading") {
       this.store.actions._onStatusChange("loading");
-    }
     }
   };
 

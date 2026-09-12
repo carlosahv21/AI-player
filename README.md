@@ -13,7 +13,7 @@ progreso que muestra qué partes se repiten más.
 ```bash
 npm install
 npm run dev          # servidor de desarrollo en dev/
-npm test             # vitest, 128 tests
+npm test             # vitest, 171 tests
 ```
 
 ## Scripts
@@ -60,21 +60,98 @@ El plugin sirve un `VideoPayload` por REST (`src/core/types.ts`). Campos
 obligatorios: `id`, `title`, `duration`, `sources`, `sections`, `features`,
 `tracks`.
 
-`preview` (sprite de miniaturas) y `heatmap` (muestras de interés en 0..1) son
-opcionales: si faltan, el reproductor se comporta igual sin dibujarlos.
+`heatmap` (muestras de interés en 0..1) es opcional. `preview` es obligatorio
+como **clave**, pero `null` es un valor válido y esperado: el plugin siempre
+manda el campo, y cuando vale `null` no se dibuja vista previa y todo lo demás
+funciona igual.
 
 Los datos cruzan una frontera de confianza — los sirve WordPress y un filtro o
 un meta editado a mano puede meter cualquier cosa. `sanitizeHeatmap` en
-`src/ui/hooks/useVideoPayload.ts` los limpia; un solo `NaN` en el array del
-heatmap borra la curva entera sin error visible.
+`src/ui/hooks/useVideoPayload.ts` los limpia: descarta las muestras inválidas
+una a una y registra cuántas y por qué. Solo si más de la mitad del array es
+inválida se descarta la curva entera, como `console.error`.
 
-Cuidado con dos supuestos que **no** están garantizados:
+### La duración real manda
 
-- Las secciones pueden no cubrir toda la duración: dejar huecos, empezar tarde o
-  terminar antes. Nada las valida.
-- `duration` se siembra del payload y luego la **sobreescribe** la metadata real
-  del MP4 (`_onDurationChange`), mientras las secciones conservan los números
-  del payload. Los dos pueden discrepar.
+`duration` del payload es una **estimación**. Cuando llega `loadedmetadata`, la
+metadata del medio es la autoridad y `_onDurationChange` reconcilia todo contra
+ella:
+
+- las secciones que empiezan después del final se descartan;
+- las que terminan después se recortan (y sus `steps` con ellas);
+- cualquier loop —el activo o uno restaurado de `localStorage`— se recorta o se
+  descarta si ya no cabe;
+- cada ajuste se registra en consola con la sección, el valor esperado y el
+  real.
+
+Ese aviso no es un error del usuario final: significa que las secciones
+guardadas en el admin describen un video que no es el que se está sirviendo.
+**Hay que corregirlas en el admin.**
+
+### Cobertura de secciones
+
+Las secciones **no** tienen por qué cubrir toda la duración, y el player no
+inventa secciones de relleno: un hueco es un dato que falta, no algo que el
+reproductor deba fabricar.
+
+`selectSectionCoverage` (en `src/core/selectors.ts`) devuelve el porcentaje
+cubierto, y `selectCoverageGaps` los tramos vacíos. Ambos son derivados, nunca
+estado guardado. Si hay huecos se registra un aviso al cargar.
+
+Importa porque rompe la analítica: un heartbeat que cae en un hueco no se
+atribuye a ninguna sección, así que la retención por secciones muestra una
+caída donde en realidad hay un vacío del modelo.
+
+> **Pendiente para el admin del plugin:** al guardar, esto debe ser una
+> advertencia visible — "las secciones cubren el 62% del video" — junto a los
+> tramos sin cubrir. Mismo criterio para las secciones que exceden la duración
+> real.
+
+### `preview`: lo que el plugin debe producir
+
+El campo es parte del contrato aunque el plugin todavía no mande miniaturas.
+Formato exacto, para no tener que deducirlo leyendo TypeScript:
+
+```json
+"preview": {
+  "spriteUrl": "https://cdn.example.com/vid/123/sprite.jpg",
+  "vttUrl":    "https://cdn.example.com/vid/123/thumbs.vtt"
+}
+```
+
+O bien `"preview": null`. Ambas claves son obligatorias cuando el objeto está
+presente; si falta cualquiera de las dos, se trata como `null`.
+
+El VTT es el sabor *thumbnail* de WebVTT: cada cue apunta a un recorte del
+sprite con un fragmento de medios `#xywh`.
+
+```
+WEBVTT
+
+00:00:00.000 --> 00:00:05.000
+sprite.jpg#xywh=0,0,160,90
+
+00:00:05.000 --> 00:00:10.000
+sprite.jpg#xywh=160,0,160,90
+```
+
+Reglas que aplica el parser (`src/ui/hooks/usePreviewSprite.ts`):
+
+| Regla | Detalle |
+|---|---|
+| Marcas de tiempo | `hh:mm:ss.mmm` o `mm:ss.mmm` |
+| Carga útil | URL con `#xywh=x,y,ancho,alto`, en la línea siguiente al cue |
+| Origen del sprite | **`spriteUrl` del payload**, no la URL escrita en el cue |
+| Cue inválido | Se descarta en silencio (sin `#xywh`, números no numéricos, ancho o alto ≤ 0) |
+
+**Degradación.** Si el VTT no carga (404, error de red) o no deja ni un cue
+válido, el resultado es "sin vista previa" y se registra un aviso en consola.
+Nunca llega al estado de error del store: la barra de progreso, el scrubbing y
+el panel de loop siguen funcionando igual. Una miniatura ausente es una función
+que falta, no un fallo del reproductor.
+
+En producción Bunny genera el sprite y el VTT automáticamente; el plugin solo
+pasa las dos URLs. Ver `docs/miniaturas.md` para el banco de pruebas.
 
 ## Barra de progreso
 
