@@ -31,9 +31,38 @@ export interface VideoPayload {
 }
 
 /** Where the thumbnail sprite and its cue map live. */
-export interface PreviewSource {
+export interface VttPreviewSource {
   spriteUrl: string;
   vttUrl: string;
+}
+
+/**
+ * Sprite sheets with fixed geometry, so no VTT is needed: the frame for a
+ * time is computed from `interval`, `columns` and `rows`.
+ *
+ * The server sends the geometry rather than the player inferring it, which
+ * is what keeps the player from knowing which provider produced the sheets.
+ */
+export interface SpritePreviewSource {
+  type: "sprite";
+  /** Prefix up to the sheet number: `.../seek/_`. */
+  baseUrl: string;
+  extension: string;
+  /** Seconds between frames. */
+  interval: number;
+  columns: number;
+  rows: number;
+  frameWidth: number;
+  sheetWidth: number;
+}
+
+export type PreviewSource = VttPreviewSource | SpritePreviewSource;
+
+/** Narrows the sprite flavour, which is the only one carrying `type`. */
+export function isSpritePreview(
+  preview: PreviewSource | null | undefined,
+): preview is SpritePreviewSource {
+  return !!preview && (preview as SpritePreviewSource).type === "sprite";
 }
 
 export interface Section {

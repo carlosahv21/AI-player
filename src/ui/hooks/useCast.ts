@@ -72,10 +72,38 @@ export function useCast(video: HTMLVideoElement | null) {
       };
     }
 
-    // --- Google Cast (Chrome). Only report it when the framework is already
-    // loaded by the host page: the player does not pull in the SDK itself.
-    if (window.cast?.framework) setKind("cast");
+    /*
+     * --- Google Cast (Chrome). The player never pulls in the SDK; the host
+     * page does (the WordPress plugin enqueues it).
+     *
+     * The SDK loads async, so it is usually absent on mount and checking
+     * once would leave the button hidden for good. `__onGCastApiAvailable`
+     * is the SDK's own ready callback, and it fires whenever the script
+     * lands — before or after this effect runs.
+     */
+    if (window.cast?.framework) {
+      setKind("cast");
+    } else {
+      const previous = window.__onGCastApiAvailable;
+      window.__onGCastApiAvailable = (available: boolean) => {
+        // Chain rather than replace: another player on the page may have
+        // registered its own callback, and the SDK only calls one.
+        previous?.(available);
+        if (available && window.cast?.framework) setKind("cast");
+      };
+      return () => {
+        window.__onGCastApiAvailable = previous;
+      };
+    }
   }, [video]);
+
+  /*
+   * Development flag: render the button with no device on the network, to
+   * check styling. `start()` still does nothing without a real framework,
+   * so this cannot fake a session.
+   */
+  const forced = Boolean(window.AIVP_CONFIG?.castForceButton);
+  const effectiveKind: CastKind = kind ?? (forced ? "cast" : null);
 
   const start = () => {
     const el = elRef.current as WebKitVideo | null;
@@ -88,5 +116,5 @@ export function useCast(video: HTMLVideoElement | null) {
     }
   };
 
-  return { kind, active, start };
+  return { kind: effectiveKind, active, start };
 }

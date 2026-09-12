@@ -25,6 +25,12 @@ export interface AivpConfig {
   currentUserId?: number | null;
   /** Site-wide default theme. A per-mount data-aivp-theme overrides it. */
   theme?: AivpTheme;
+  /**
+   * Development flag: render the Cast button with no device available, to
+   * check styling. Never on in production — it shows a button that cannot
+   * connect to anything.
+   */
+  castForceButton?: boolean;
 }
 
 declare global {

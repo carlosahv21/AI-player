@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { PreviewSource } from "../../core/types";
+import type { PreviewSource, SpritePreviewSource } from "../../core/types";
+import { isSpritePreview } from "../../core/types";
 
 /** One thumbnail: where it lives inside the sprite sheet. */
 export interface PreviewCue {
@@ -18,10 +19,57 @@ export interface PreviewData {
   cues: PreviewCue[];
 }
 
-/** Bunny Stream seek sheets: 6×6, one frame every 2s (1s under 10s). */
+/**
+ * Fallback geometry for sheets derived from a bare Bunny URL.
+ *
+ * Only the legacy path below uses these. When the payload carries a
+ * `preview` block the numbers come from the server, which is what lets the
+ * player serve any provider without knowing one.
+ */
 const BUNNY_COLS = 6;
 const BUNNY_ROWS = 6;
 const BUNNY_PER_SHEET = BUNNY_COLS * BUNNY_ROWS;
+
+/**
+ * Cue map for a declared sprite contract.
+ *
+ * Pure geometry: sheet `floor(i / perSheet)`, and inside it row
+ * `floor((i % perSheet) / columns)` and column `(i % perSheet) % columns`.
+ * Cell height is measured, not declared — it follows the video's aspect
+ * ratio, so a portrait clip is ~300×533 and a landscape one ~300×169.
+ */
+export function spriteCues(
+  preview: SpritePreviewSource,
+  duration: number,
+  cellW: number,
+  cellH: number,
+): PreviewCue[] {
+  const { columns, rows, interval } = preview;
+  const perSheet = columns * rows;
+
+  if (duration <= 0 || cellW <= 0 || cellH <= 0) return [];
+  if (columns <= 0 || rows <= 0 || interval <= 0) return [];
+
+  const frames = Math.floor(duration / interval) + 1;
+  const cues: PreviewCue[] = [];
+
+  for (let i = 0; i < frames; i += 1) {
+    const start = i * interval;
+    if (start > duration) break;
+    const slot = i % perSheet;
+    cues.push({
+      start,
+      end: start + interval,
+      x: (slot % columns) * cellW,
+      y: Math.floor(slot / columns) * cellH,
+      w: cellW,
+      h: cellH,
+      spriteUrl: `${preview.baseUrl}${Math.floor(i / perSheet)}${preview.extension}`,
+    });
+  }
+
+  return cues;
+}
 
 /**
  * Library root of a Bunny Stream URL (`…/playlist.m3u8`, `…/thumbnail.jpg`).
@@ -146,10 +194,56 @@ export function usePreviewSprite(
 ): PreviewData | null {
   const [data, setData] = useState<PreviewData | null>(null);
 
+  const sprite = isSpritePreview(preview) ? preview : null;
+  const vtt = preview && !isSpritePreview(preview) ? preview : null;
+
   useEffect(() => {
     let cancelled = false;
 
-    if (preview?.spriteUrl && preview?.vttUrl) {
+    /*
+     * Declared sprite geometry: the server said how the sheets are laid
+     * out, so nothing here needs to know which provider made them. Only
+     * the cell height is measured, since it follows the video's aspect.
+     */
+    if (sprite) {
+      const duration = media?.duration ?? 0;
+      if (duration <= 0) {
+        setData(null);
+        return;
+      }
+
+      const firstSheet = `${sprite.baseUrl}0${sprite.extension}`;
+      const img = new Image();
+
+      img.onload = () => {
+        if (cancelled) return;
+        const cellW = img.naturalWidth / sprite.columns;
+        const cellH = img.naturalHeight / sprite.rows;
+        const cues = spriteCues(sprite, duration, cellW, cellH);
+        setData(cues.length > 0 ? { spriteUrl: firstSheet, cues } : null);
+      };
+
+      // A sheet that will not load degrades to no preview. The bar, its
+      // scrubbing and the loop panel all work without thumbnails, so this
+      // must never reach the store's error state.
+      img.onerror = () => {
+        if (cancelled) return;
+        console.warn(
+          `[aivp] no se pudo cargar la hoja de miniaturas (${firstSheet}); ` +
+            `se continúa sin vista previa.`,
+        );
+        setData(null);
+      };
+
+      img.src = firstSheet;
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (vtt && vtt.spriteUrl && vtt.vttUrl) {
+      const preview = vtt;
       fetch(preview.vttUrl)
         .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then((text) => {
@@ -209,7 +303,14 @@ export function usePreviewSprite(
     return () => {
       cancelled = true;
     };
-  }, [preview?.spriteUrl, preview?.vttUrl, media?.hls, media?.poster, media?.duration]);
+  }, [
+    sprite,
+    vtt?.spriteUrl,
+    vtt?.vttUrl,
+    media?.hls,
+    media?.poster,
+    media?.duration,
+  ]);
 
   return data;
 }

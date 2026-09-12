@@ -218,7 +218,10 @@ async function panels(browser) {
 
   // picking a section is a decision: it runs and gets out of the way
   await openLoop();
-  await p.click("text=Secuencia principal");
+  // the second section of whatever payload the bench serves, picked by
+  // position rather than by name: the check is about the gesture, and a
+  // mock's wording is not part of it
+  await p.click('[role=dialog] [class*="group"]:nth-child(2) [class*="section"]');
   await p.waitForTimeout(900);
   check("elegir sección cierra el panel y reproduce",
     (await dialogs()) === 0 && (await stateOf(p)).paused === false);

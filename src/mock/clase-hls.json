@@ -10,9 +10,24 @@
     "back": null
   },
   "sections": [
-    { "id": "s1", "name": "Intro", "start": 0, "end": 60 },
-    { "id": "s2", "name": "Desarrollo", "start": 60, "end": 220 },
-    { "id": "s3", "name": "Cierre", "start": 220, "end": 317 }
+    {
+      "id": "s1",
+      "name": "Intro",
+      "start": 0,
+      "end": 60
+    },
+    {
+      "id": "s2",
+      "name": "Desarrollo",
+      "start": 60,
+      "end": 220
+    },
+    {
+      "id": "s3",
+      "name": "Cierre",
+      "start": 220,
+      "end": 317
+    }
   ],
   "features": {
     "mirror": true,
@@ -22,6 +37,18 @@
     "quality": true,
     "pip": true
   },
-  "tracks": { "subtitles": [], "audio": [] },
-  "preview": null
+  "tracks": {
+    "subtitles": [],
+    "audio": []
+  },
+  "preview": {
+    "type": "sprite",
+    "baseUrl": "https://vz-07b7e659-3fa.b-cdn.net/afe9b042-78df-46b8-ad42-cf16c922c487/seek/_",
+    "extension": ".jpg",
+    "interval": 2,
+    "columns": 6,
+    "rows": 6,
+    "frameWidth": 300,
+    "sheetWidth": 1800
+  }
 }
