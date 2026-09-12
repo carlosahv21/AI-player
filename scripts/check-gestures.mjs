@@ -145,6 +145,37 @@ async function mobile(browser) {
     `${beforeLeft} -> ${afterLeft}`,
   );
 
+  // The reported bug: a real finger is slower than the 80ms above. Two taps
+  // measured 251ms apart landed past the old 250ms window, so the first tap's
+  // timer had already toggled play/pause and the second toggled it back — the
+  // double tap paused instead of seeking. A fresh page per gap: a leftover
+  // pending zone from the previous pair would mask the result.
+  for (const gap of [240, 380]) {
+    const slow = await browser.newPage({
+      ...devices["iPhone 13"],
+      hasTouch: true,
+      isMobile: true,
+    });
+    await slow.goto(URL, { waitUntil: "networkidle" });
+    await slow.waitForTimeout(2000);
+    const sbox = await (await slow.$("video")).boundingBox();
+    const sy = sbox.y + sbox.height / 2;
+    await slow.touchscreen.tap(sbox.x + sbox.width * 0.5, sy);
+    await slow.waitForTimeout(1500);
+    const s0 = await stateOf(slow);
+    await slow.touchscreen.tap(sbox.x + sbox.width * 0.85, sy);
+    await slow.waitForTimeout(gap);
+    await slow.touchscreen.tap(sbox.x + sbox.width * 0.85, sy);
+    await slow.waitForTimeout(700);
+    const s1 = await stateOf(slow);
+    check(
+      `móvil: doble toque lento (${gap}ms) adelanta y NO pausa`,
+      s1.t - s0.t > 8 && s1.paused === false,
+      `${s0.t} -> ${s1.t}, pausado=${s1.paused}`,
+    );
+    await slow.close();
+  }
+
   // the bar's own controls must still take their taps
   const btn = await p.$('button[aria-label*="Pausar"], button[aria-label*="Reproducir"]');
   const bb = await btn.boundingBox();

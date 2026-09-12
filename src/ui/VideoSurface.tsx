@@ -25,6 +25,9 @@ export const VideoSurface = forwardRef<HTMLVideoElement>(
     const togglePlay = usePlayerState((s) => s.togglePlay);
     const hasVideo = usePlayerState((s) => Boolean(s.video));
     const seekBy = usePlayerState((s) => s.seekBy);
+    // only for undoing a double-tap's already-fired toggle; see useVideoGestures
+    const play = usePlayerState((s) => s.play);
+    const pause = usePlayerState((s) => s.pause);
     const playbackRate = usePlayerState((s) => s.playbackRate);
     const setPlaybackRate = usePlayerState((s) => s.setPlaybackRate);
     const retryLoad = useRetryLoad();
@@ -40,6 +43,8 @@ export const VideoSurface = forwardRef<HTMLVideoElement>(
       status,
       playbackRate,
       togglePlay: () => toggleRef.current(),
+      play,
+      pause,
       seekBy,
       setPlaybackRate,
     });

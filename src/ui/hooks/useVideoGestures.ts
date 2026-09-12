@@ -3,8 +3,16 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { MAX_HOLD_RATE } from "../../core/types";
 import type { PlaybackRate } from "../../core/types";
 
-/** Wait for a possible second tap, in the side zones only. */
-const DOUBLE_TAP_MS = 250;
+/**
+ * Wait for a possible second tap, in the side zones only.
+ *
+ * 250ms was too tight for a real finger: two taps measured 251ms apart on a
+ * phone, so the first tap's timer had already fired play/pause and the second
+ * one toggled it straight back — a double tap that paused instead of seeking.
+ * Browsers themselves allow ~500ms for a double click; 400 keeps the side-zone
+ * play/pause responsive while covering an unhurried tap.
+ */
+const DOUBLE_TAP_MS = 400;
 /** How long a press must be held before it becomes a speed gesture. */
 const HOLD_MS = 400;
 /** Rate the hold starts at, before any drag. */
@@ -28,6 +36,14 @@ interface Options {
   status: string;
   playbackRate: PlaybackRate;
   togglePlay: () => void;
+  /**
+   * Explicit play/pause, used ONLY to undo a toggle the double-tap timer
+   * already fired. togglePlay() cannot undo itself: it no-ops unless the
+   * status is in PLAYING_STATUSES, and a seek can put the player in "loading"
+   * in between — which left the video paused and the gesture out of sync.
+   */
+  play: () => void;
+  pause: () => void;
   seekBy: (delta: number) => void;
   setPlaybackRate: (rate: number) => void;
 }
@@ -49,6 +65,8 @@ export function useVideoGestures({
   status,
   playbackRate,
   togglePlay,
+  play,
+  pause,
   seekBy,
   setPlaybackRate,
 }: Options) {
@@ -66,6 +84,21 @@ export function useVideoGestures({
   const flashKey = useRef(0);
   /** Zone of the first tap, while waiting to see if a second one lands. */
   const pendingZone = useRef<"left" | "right" | null>(null);
+  /**
+   * When the pending tap's play/pause actually ran, so a second tap arriving
+   * just after can undo it.
+   *
+   * The window alone cannot close the race: the timer fires on a background
+   * task, so a tap can always land a millisecond after it. Without this the
+   * late second tap toggled a SECOND time — the double tap read as a pause.
+   */
+  const toggledAt = useRef(0);
+  /** Whether that toggle had been playing, so the undo restores it exactly. */
+  const wasPlaying = useRef(false);
+  // the timer fires long after the render that armed it, so the closure's
+  // `status` would be stale by then
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   const clearTimers = () => {
     window.clearTimeout(holdTimer.current);
@@ -154,24 +187,49 @@ export function useVideoGestures({
 
     // Desktop, and the centre third on touch: play/pause with no delay.
     if (zone === "centre") {
+      pendingZone.current = null;
+      toggledAt.current = 0;
       togglePlay();
       return;
     }
 
     // Side zones on touch: a second tap within the window seeks instead.
-    if (tapTimer.current !== undefined && pendingZone.current === zone) {
+    //
+    // Two ways the first tap can still be "pending": its timer has not run yet
+    // (the common case), or it ran a moment ago and already toggled — which is
+    // the race the window cannot close. Both are a double tap; the second case
+    // just has a toggle to undo first.
+    const justToggled =
+      toggledAt.current > 0 && Date.now() - toggledAt.current < DOUBLE_TAP_MS;
+
+    if (pendingZone.current === zone && (tapTimer.current !== undefined || justToggled)) {
       window.clearTimeout(tapTimer.current);
       tapTimer.current = undefined;
       pendingZone.current = null;
+      // Put back the play/pause the timer already fired, so the gesture is a
+      // seek and nothing else. Restoring the REMEMBERED state, not toggling
+      // again: togglePlay() only plays while the status is in
+      // PLAYING_STATUSES, and the seek below can leave it "loading", so a
+      // second toggle silently did nothing and stranded the video paused.
+      if (justToggled) {
+        if (wasPlaying.current) play();
+        else pause();
+      }
+      toggledAt.current = 0;
       seekBy(zone === "left" ? -SEEK_SECONDS : SEEK_SECONDS);
       showFlash(zone === "left" ? "back" : "forward");
       return;
     }
 
     pendingZone.current = zone;
+    toggledAt.current = 0;
     tapTimer.current = window.setTimeout(() => {
       tapTimer.current = undefined;
-      pendingZone.current = null;
+      // the zone stays set: a second tap just after this still counts as a
+      // double tap, and reads `toggledAt` to know it must undo the toggle
+      toggledAt.current = Date.now();
+      // what the toggle is about to leave behind, so the undo can restore it
+      wasPlaying.current = statusRef.current === "playing";
       togglePlay();
     }, DOUBLE_TAP_MS);
   };
