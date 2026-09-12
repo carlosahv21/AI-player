@@ -1,0 +1,27 @@
+{
+  "id": 1,
+  "title": "Clase de prueba",
+  "instructor": null,
+  "duration": 317,
+  "poster": "https://vz-07b7e659-3fa.b-cdn.net/afe9b042-78df-46b8-ad42-cf16c922c487/thumbnail.jpg",
+  "sources": {
+    "hls": "https://vz-07b7e659-3fa.b-cdn.net/afe9b042-78df-46b8-ad42-cf16c922c487/playlist.m3u8",
+    "mp4": null,
+    "back": null
+  },
+  "sections": [
+    { "id": "s1", "name": "Intro", "start": 0, "end": 60 },
+    { "id": "s2", "name": "Desarrollo", "start": 60, "end": 220 },
+    { "id": "s3", "name": "Cierre", "start": 220, "end": 317 }
+  ],
+  "features": {
+    "mirror": true,
+    "loop": true,
+    "speed": true,
+    "frontBack": false,
+    "quality": true,
+    "pip": true
+  },
+  "tracks": { "subtitles": [], "audio": [] },
+  "preview": null
+}

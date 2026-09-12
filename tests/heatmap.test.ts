@@ -124,6 +124,26 @@ describe("sectionCuts", () => {
       ),
     ).toEqual([]);
   });
+
+  it("adds a step's start inside a section, once", () => {
+    expect(
+      sectionCuts(
+        [
+          {
+            start: 0,
+            end: 30,
+            steps: [
+              { start: 0, end: 10 },
+              { start: 10, end: 20 },
+              { start: 20, end: 30 },
+            ],
+          },
+          { start: 30, end: 60 },
+        ],
+        60,
+      ),
+    ).toEqual([axisAt(10, 60), axisAt(20, 60), axisAt(30, 60)]);
+  });
 });
 
 describe("gapMask", () => {

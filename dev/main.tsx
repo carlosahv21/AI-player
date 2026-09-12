@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import danceLocal from "../src/mock/dance-local.json";
+import claseHls from "../src/mock/clase-hls.json";
 import { Player } from "../src/index";
 import type { AivpTheme, VideoPayload } from "../src/index";
 
-const video = danceLocal as VideoPayload;
+const video = claseHls as VideoPayload;
 
 /**
  * Dev-only chrome. Collapsed to a dot in the corner so the bench shows the

@@ -51,7 +51,7 @@
     "progress progress progress progress"
     "left . practice chrome";
   /* tall enough that the gradient covers the practice row above it */
-  padding: 96px 20px 12px;
+  padding: 116px 20px 12px;
 }
 
 /* ponytail: desktop puts the practice cluster on its own row above the bar,
@@ -62,8 +62,10 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 104px;
-  /* ponytail: above .bar — its 76px top padding reaches up here and would
+  /* 20px above the progress wrap so the 17px heatmap crests clear the
+     buttons instead of running through them */
+  bottom: 124px;
+  /* ponytail: above .bar — its top padding reaches up here and would
      otherwise swallow every click on this row */
   z-index: var(--aivp-z-bar-item);
   display: flex;

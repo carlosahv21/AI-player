@@ -9,6 +9,10 @@
   z-index: 1;
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  margin: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -22,11 +26,43 @@
   background: var(--aivp-surface-raised);
   color: var(--aivp-text-muted);
   cursor: pointer;
+  overflow: hidden;
 }
 
 .close:hover:not(:disabled) {
   background: var(--aivp-border);
   color: var(--aivp-text);
+}
+
+/*
+ * WordPress: `.entry-content button` is (0,1,1) and beats a lone `.close`
+ * (0,1,0). Astra's 15×30 padding then leaves a 36px box with no room for
+ * the stroke, which is why the X vanished there and not on the bench.
+ * `[data-aivp-theme] button.close` is (0,2,1).
+ */
+:global([data-aivp-theme]) button.close {
+  padding: 0;
+  margin: 0;
+  min-width: 36px;
+  min-height: 36px;
+  background: var(--aivp-surface-raised);
+  background-image: none;
+  color: var(--aivp-text-muted);
+  box-shadow: none;
+  line-height: 0;
+}
+
+:global([data-aivp-theme]) button.close:hover:not(:disabled) {
+  background: var(--aivp-border);
+  color: var(--aivp-text);
+}
+
+:global([data-aivp-theme]) button.close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  color: inherit;
 }
 
 .icon {
@@ -44,5 +80,12 @@
     right: 12px;
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  :global([data-aivp-theme]) button.close {
+    min-width: 40px;
+    min-height: 40px;
   }
 }

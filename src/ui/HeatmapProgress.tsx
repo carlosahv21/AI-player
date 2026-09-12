@@ -33,26 +33,41 @@ export function axisAt(time: number, duration: number): string {
   return `${Math.max(0, Math.min(1, time / duration)) * 100}%`;
 }
 
+type CutSource = {
+  start: number;
+  end: number;
+  steps?: readonly { start: number; end: number }[];
+};
+
 /**
- * Interior joints between touching named sections, as axis percentages.
+ * Interior joints on the rail, as axis percentages: touching named sections,
+ * plus every step that starts inside the video.
  *
- * A hole between two sections is an absence, not a joint, so it is not a cut.
+ * A hole between two sections is an absence, not a joint. A step that shares
+ * its start with a section joint is listed once.
  */
 export function sectionCuts(
-  sections: readonly { start: number; end: number }[],
+  sections: readonly CutSource[],
   duration: number,
 ): string[] {
   if (duration <= 0) return [];
+  const times = new Set<number>();
   const ordered = [...sections]
     .filter((s) => s.end > s.start)
     .sort((a, b) => a.start - b.start);
-  const out: string[] = [];
   for (let i = 1; i < ordered.length; i++) {
     if (ordered[i].start === ordered[i - 1].end && ordered[i].start < duration) {
-      out.push(axisAt(ordered[i].start, duration));
+      times.add(ordered[i].start);
     }
   }
-  return out;
+  for (const section of sections) {
+    for (const step of section.steps ?? []) {
+      if (step.end > step.start && step.start > 0 && step.start < duration) {
+        times.add(step.start);
+      }
+    }
+  }
+  return [...times].sort((a, b) => a - b).map((t) => axisAt(t, duration));
 }
 
 /**

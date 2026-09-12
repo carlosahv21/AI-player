@@ -12,10 +12,10 @@ export interface VideoPayload {
   sections: Section[];
   features: PlayerFeatures;
   /**
-   * Sprite sheet + WebVTT map for timeline thumbnails, as Bunny generates
-   * them. `null` is a first-class value, not an absence: the plugin always
-   * sends the key, and when it is null no preview is rendered and everything
-   * else behaves identically. The player never depends on it.
+   * Sprite sheet + WebVTT map for timeline thumbnails. `null` means the
+   * plugin did not send a map; the player then tries Bunny's `seek/_N.jpg`
+   * sheets from the HLS URL, and only hides the preview if those are missing
+   * too. Everything else behaves identically either way.
    */
   preview: PreviewSource | null;
   /**

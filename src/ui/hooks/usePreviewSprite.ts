@@ -9,11 +9,63 @@ export interface PreviewCue {
   y: number;
   w: number;
   h: number;
+  /** Set when this cue lives on a different sheet than `PreviewData.spriteUrl`. */
+  spriteUrl?: string;
 }
 
 export interface PreviewData {
   spriteUrl: string;
   cues: PreviewCue[];
+}
+
+/** Bunny Stream seek sheets: 6×6, one frame every 2s (1s under 10s). */
+const BUNNY_COLS = 6;
+const BUNNY_ROWS = 6;
+const BUNNY_PER_SHEET = BUNNY_COLS * BUNNY_ROWS;
+
+/**
+ * Library root of a Bunny Stream URL (`…/playlist.m3u8`, `…/thumbnail.jpg`).
+ * Anything else returns null — local mocks stay on their VTT sprite.
+ */
+export function bunnyLibraryBase(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (!/^vz-[a-z0-9-]+\.b-cdn\.net$/i.test(parsed.hostname)) return null;
+    const guid = parsed.pathname.split("/").filter(Boolean)[0];
+    if (!guid) return null;
+    return `${parsed.origin}/${guid}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Cue map for Bunny's `seek/_N.jpg` sheets. Cell size comes from the first sheet. */
+export function bunnySeekCues(
+  base: string,
+  duration: number,
+  cellW: number,
+  cellH: number,
+): PreviewCue[] {
+  if (duration <= 0 || cellW <= 0 || cellH <= 0) return [];
+  const interval = duration < 10 ? 1 : 2;
+  const frames = Math.floor(duration / interval) + 1;
+  const cues: PreviewCue[] = [];
+  for (let i = 0; i < frames; i += 1) {
+    const start = i * interval;
+    if (start > duration) break;
+    const slot = i % BUNNY_PER_SHEET;
+    cues.push({
+      start,
+      end: start + interval,
+      x: (slot % BUNNY_COLS) * cellW,
+      y: Math.floor(slot / BUNNY_COLS) * cellH,
+      w: cellW,
+      h: cellH,
+      spriteUrl: `${base}/seek/_${Math.floor(i / BUNNY_PER_SHEET)}.jpg`,
+    });
+  }
+  return cues;
 }
 
 /** "00:01:02.500" | "01:02.500" -> seconds. */
@@ -74,57 +126,90 @@ export function cueAt(cues: PreviewCue[], time: number): PreviewCue | null {
     : null;
 }
 
+export interface PreviewMedia {
+  hls?: string | null;
+  poster?: string | null;
+  duration: number;
+}
+
 /**
  * Loads the sprite map once per payload.
  *
- * Returns null whenever previews are unavailable — no `preview` field, a
- * fetch that failed, an unparseable VTT — and every caller treats null as
- * "render no preview". A missing sprite must never break the timeline.
+ * An explicit `preview` (sprite + VTT) wins. When the plugin sends null —
+ * WordPress today, and the HLS mock — Bunny Stream still publishes
+ * `seek/_N.jpg` sheets, so those are derived from the HLS/poster URL.
+ * Anything else stays null: a missing sprite must never break the timeline.
  */
 export function usePreviewSprite(
   preview: PreviewSource | null | undefined,
+  media?: PreviewMedia,
 ): PreviewData | null {
   const [data, setData] = useState<PreviewData | null>(null);
 
   useEffect(() => {
-    if (!preview?.spriteUrl || !preview?.vttUrl) {
+    let cancelled = false;
+
+    if (preview?.spriteUrl && preview?.vttUrl) {
+      fetch(preview.vttUrl)
+        .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        .then((text) => {
+          if (cancelled) return;
+          const cues = parsePreviewVtt(text);
+          if (cues.length === 0) {
+            console.warn(
+              `[aivp] el VTT de miniaturas (${preview.vttUrl}) no tiene cues ` +
+                `válidos; se continúa sin vista previa.`,
+            );
+            setData(null);
+            return;
+          }
+          setData({ spriteUrl: preview.spriteUrl, cues });
+        })
+        // Degrading, not failing: the timeline, its scrubbing and the loop panel
+        // all work without thumbnails, so a missing sprite must never reach the
+        // store's error state and blank the player. Logged, because a 404 here
+        // is a plugin misconfiguration someone can fix.
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          console.warn(
+            `[aivp] no se pudieron cargar las miniaturas (${preview.vttUrl}):`,
+            error,
+          );
+          setData(null);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const base =
+      bunnyLibraryBase(media?.hls) ?? bunnyLibraryBase(media?.poster);
+    const duration = media?.duration ?? 0;
+    if (!base || duration <= 0) {
       setData(null);
       return;
     }
 
-    let cancelled = false;
-    fetch(preview.vttUrl)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((text) => {
-        if (cancelled) return;
-        const cues = parsePreviewVtt(text);
-        if (cues.length === 0) {
-          console.warn(
-            `[aivp] el VTT de miniaturas (${preview.vttUrl}) no tiene cues ` +
-              `válidos; se continúa sin vista previa.`,
-          );
-          setData(null);
-          return;
-        }
-        setData({ spriteUrl: preview.spriteUrl, cues });
-      })
-      // Degrading, not failing: the timeline, its scrubbing and the loop panel
-      // all work without thumbnails, so a missing sprite must never reach the
-      // store's error state and blank the player. Logged, because a 404 here
-      // is a plugin misconfiguration someone can fix.
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        console.warn(
-          `[aivp] no se pudieron cargar las miniaturas (${preview.vttUrl}):`,
-          error,
-        );
-        setData(null);
-      });
+    // Cell size follows the first sheet: portrait videos are ~300×533,
+    // landscape ~300×169. Hardcoding either crops the other.
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled) return;
+      const cellW = img.naturalWidth / BUNNY_COLS;
+      const cellH = img.naturalHeight / BUNNY_ROWS;
+      const cues = bunnySeekCues(base, duration, cellW, cellH);
+      setData(cues.length > 0 ? { spriteUrl: `${base}/seek/_0.jpg`, cues } : null);
+    };
+    img.onerror = () => {
+      if (cancelled) return;
+      setData(null);
+    };
+    img.src = `${base}/seek/_0.jpg`;
 
     return () => {
       cancelled = true;
     };
-  }, [preview?.spriteUrl, preview?.vttUrl]);
+  }, [preview?.spriteUrl, preview?.vttUrl, media?.hls, media?.poster, media?.duration]);
 
   return data;
 }

@@ -41,7 +41,14 @@ export function LoopPanel({ onClose }: { onClose: () => void }) {
   // render old by the time a drag ends
   const { playerStore } = usePlayerStoreInstance();
   const preview = usePlayerState((s) => s.video?.preview);
-  const previewData = usePreviewSprite(preview);
+  const hls = usePlayerState((s) => s.video?.sources.hls);
+  const poster = usePlayerState((s) => s.video?.poster);
+  const payloadDuration = usePlayerState((s) => s.video?.duration ?? 0);
+  const previewData = usePreviewSprite(preview, {
+    hls,
+    poster,
+    duration: duration > 0 ? duration : payloadDuration,
+  });
 
   // the panel still owns the range while dragging, so a half-made selection
   // does not thrash the store; commitRange() pushes it once it is valid

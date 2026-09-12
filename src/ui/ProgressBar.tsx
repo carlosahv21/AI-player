@@ -47,7 +47,14 @@ export function ProgressBar({
   const setLoop = usePlayerState((s) => s.setLoop);
   const preview = usePlayerState((s) => s.video?.preview);
   const heatmap = usePlayerState((s) => s.video?.heatmap);
-  const previewData = usePreviewSprite(preview);
+  const hls = usePlayerState((s) => s.video?.sources.hls);
+  const poster = usePlayerState((s) => s.video?.poster);
+  const payloadDuration = usePlayerState((s) => s.video?.duration ?? 0);
+  const previewData = usePreviewSprite(preview, {
+    hls,
+    poster,
+    duration: duration > 0 ? duration : payloadDuration,
+  });
   // which loop edge is being dragged, null when not dragging one
   const [handle, setHandle] = useState<"start" | "end" | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -92,6 +99,12 @@ export function ProgressBar({
       ? null
       : (sections.find((x) => x.start <= guideTime && guideTime < x.end) ??
         null);
+  const guideStep =
+    guideTime === null
+      ? null
+      : (sections
+          .flatMap((s) => s.steps ?? [])
+          .find((st) => st.start <= guideTime && guideTime < st.end) ?? null);
 
   const shown = drag ?? currentTime;
   const max = duration > 0 ? duration : 1;
@@ -226,8 +239,10 @@ export function ProgressBar({
               width={Math.max(0, labelW - 16)}
               className={styles.guideThumb}
             />
-            {guideSection ? (
-              <b className={styles.guideName}>{guideSection.name}</b>
+            {guideStep || guideSection ? (
+              <b className={styles.guideName}>
+                {guideStep ? guideStep.name : guideSection!.name}
+              </b>
             ) : null}
             <span className={styles.guideTime}>
               {formatTime(guide * duration, duration)}
