@@ -18,11 +18,17 @@ declare global {
   interface Window {
     WebKitPlaybackTargetAvailabilityEvent?: unknown;
     __onGCastApiAvailable?: (available: boolean) => void;
-    chrome?: { cast?: unknown };
+    chrome?: {
+      cast?: {
+        media?: { DEFAULT_MEDIA_RECEIVER_APP_ID?: string };
+        AutoJoinPolicy?: { ORIGIN_SCOPED?: string };
+      };
+    };
     cast?: {
       framework?: {
         CastContext: {
           getInstance: () => {
+            setOptions: (options: Record<string, unknown>) => void;
             requestSession: () => Promise<unknown>;
             getCurrentSession: () => unknown;
           };
@@ -30,6 +36,50 @@ declare global {
       };
     };
   }
+}
+
+/**
+ * Hands the Cast framework its options, once per page.
+ *
+ * `requestSession()` throws "Cannot start session before cast options are
+ * provided" without this: loading the SDK is not enough, the context has to
+ * be told which receiver to look for. The default media receiver is the
+ * right one here — the player casts a plain HLS/MP4 URL and needs no custom
+ * receiver app.
+ *
+ * Returns whether the context is usable, so a failure here keeps the button
+ * hidden instead of offering one that throws on click.
+ */
+export function initCast(): boolean {
+  const framework = window.cast?.framework;
+  const chromeCast = window.chrome?.cast;
+  if (!framework || !chromeCast) return false;
+
+  if (castReady) return true;
+
+  const receiver = chromeCast.media?.DEFAULT_MEDIA_RECEIVER_APP_ID;
+  const autoJoin = chromeCast.AutoJoinPolicy?.ORIGIN_SCOPED;
+  if (!receiver || !autoJoin) return false;
+
+  try {
+    framework.CastContext.getInstance().setOptions({
+      receiverApplicationId: receiver,
+      autoJoinPolicy: autoJoin,
+    });
+    castReady = true;
+    return true;
+  } catch (error) {
+    console.warn("[aivp] no se pudo inicializar Google Cast:", error);
+    return false;
+  }
+}
+
+/** The context is a page-wide singleton, so its options are set once. */
+let castReady = false;
+
+/** Test seam: forgets that options were set, as a fresh page would. */
+export function resetCastForTests(): void {
+  castReady = false;
 }
 
 export function useCast(video: HTMLVideoElement | null) {
@@ -82,14 +132,14 @@ export function useCast(video: HTMLVideoElement | null) {
      * lands — before or after this effect runs.
      */
     if (window.cast?.framework) {
-      setKind("cast");
+      if (initCast()) setKind("cast");
     } else {
       const previous = window.__onGCastApiAvailable;
       window.__onGCastApiAvailable = (available: boolean) => {
         // Chain rather than replace: another player on the page may have
         // registered its own callback, and the SDK only calls one.
         previous?.(available);
-        if (available && window.cast?.framework) setKind("cast");
+        if (available && window.cast?.framework && initCast()) setKind("cast");
       };
       return () => {
         window.__onGCastApiAvailable = previous;
@@ -111,8 +161,12 @@ export function useCast(video: HTMLVideoElement | null) {
       el.webkitShowPlaybackTargetPicker();
       return;
     }
-    if (kind === "cast" && window.cast?.framework) {
-      void window.cast.framework.CastContext.getInstance().requestSession();
+    if (kind === "cast" && window.cast?.framework && initCast()) {
+      // Rejects when the user simply dismisses the device picker, which is
+      // not an error worth surfacing.
+      void window.cast.framework.CastContext.getInstance()
+        .requestSession()
+        .catch(() => {});
     }
   };
 
