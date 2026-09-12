@@ -1,0 +1,114 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+}
+
+.seg {
+  min-width: 52px;
+  min-height: 52px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--aivp-text-lg);
+}
+
+/*
+ * These are the speed buttons inside the mobile sheet. They answer the
+ * pointer with the same wash as the rest of the chrome (--aivp-border).
+ *
+ * `:not([aria-pressed="true"])` does two jobs: it leaves the selected
+ * segment's solid fill alone, and it lifts the rule to (0,3,0) so it beats
+ * the button reset in Player.module.css, which sits at (0,1,1) but comes
+ * later in source order.
+ */
+.seg:not([aria-pressed="true"]):hover {
+  background: var(--aivp-border);
+}
+
+.seg[aria-pressed="true"] {
+  background: var(--aivp-state-practice);
+  color: var(--aivp-text-on-state);
+}
+
+.more {
+  min-width: 44px;
+  min-height: 52px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.more:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.more[aria-pressed="true"] {
+  color: var(--aivp-state-practice);
+}
+
+.menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* matches the quality menu: both dropdowns hang off the same bar */
+  background: var(--aivp-surface-raised);
+  border: 1px solid var(--aivp-border);
+  border-radius: var(--aivp-radius-lg);
+  padding: 5px;
+  box-shadow: var(--aivp-shadow-md);
+  z-index: var(--aivp-z-menu);
+  min-width: 72px;
+}
+
+.option {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  padding: 0 12px;
+}
+
+.option:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.option[aria-pressed="true"] {
+  color: var(--aivp-state-practice);
+}
+
+.compact {
+  min-width: 52px;
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--aivp-text-lg);
+}
+
+.compact:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.compactActive {
+  color: var(--aivp-state-practice);
+}

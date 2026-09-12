@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es" data-aivp-theme="pluranza" data-aivp-scheme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de diseño — AIVP</title>
+    <!--
+      The page reads the real token files. Nothing here restates a value, so
+      the reference cannot drift from the system it documents. Imported as a
+      module rather than <link>: Vite serves CSS outside its root that way.
+    -->
+    <script type="module">
+      import "../../src/styles/index.css";
+    </script>
+    <style>
+      body {
+        margin: 0;
+        background: var(--aivp-surface);
+        color: var(--aivp-text);
+        font-family: var(--aivp-font);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 80px; }
+      header { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; margin-bottom: 10px; }
+      h1 { font-size: 2.25rem; font-weight: 700; margin: 0; }
+      h2 {
+        font-size: 1.5rem; font-weight: 600; margin: 50px 0 6px;
+        padding-top: 24px; border-top: 1px solid var(--aivp-border);
+      }
+      h3 { font-size: 1.125rem; font-weight: 600; margin: 28px 0 10px; }
+      p.note { color: var(--aivp-text-muted); margin: 0 0 20px; max-width: 68ch; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+
+      /* --- swatches --- */
+      .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+      .sw {
+        border: 1px solid var(--aivp-border);
+        border-radius: var(--aivp-radius-lg);
+        overflow: hidden;
+        background: var(--aivp-surface-raised);
+      }
+      .sw .chip { height: 62px; }
+      .sw .meta { padding: 9px 11px; font-size: 0.8rem; line-height: 1.45; }
+      .sw .name { font-family: ui-monospace, Menlo, monospace; font-size: 0.74rem; }
+      .sw .val { color: var(--aivp-text-muted); font-family: ui-monospace, Menlo, monospace; font-size: 0.7rem; }
+
+      /* --- type scale --- */
+      .type-row { display: flex; align-items: baseline; gap: 18px; padding: 9px 0; border-bottom: 1px solid var(--aivp-border); }
+      .type-row .tag { width: 190px; flex: none; font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; color: var(--aivp-text-muted); }
+
+      /* --- buttons --- */
+      .btn-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+      .btn {
+        font: inherit; font-weight: var(--aivp-weight-bold); font-size: var(--aivp-text-sm);
+        padding: 9px 20px; border-radius: var(--aivp-radius-pill);
+        border: 1px solid transparent; cursor: pointer;
+        background: var(--aivp-brand-strong); color: var(--aivp-text-on-brand);
+      }
+      .btn:hover { background: var(--aivp-brand-hover); }
+      .btn:active { transform: translateY(1px); }
+      .btn:focus-visible { outline: 2px solid var(--aivp-focus); outline-offset: 2px; }
+      .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+      .btn.secondary {
+        background: transparent; border-color: var(--aivp-brand-strong); color: var(--aivp-brand-strong);
+      }
+      .btn.secondary:hover { background: var(--aivp-brand-soft); }
+      .btn.state { background: var(--aivp-state-practice); color: var(--aivp-text-on-state); }
+      /* forced states, so every state is visible at once without interaction */
+      .btn.is-hover { background: var(--aivp-brand-hover); }
+      .btn.is-focus { outline: 2px solid var(--aivp-focus); outline-offset: 2px; }
+
+      input.field {
+        font: inherit; font-size: var(--aivp-text-sm); padding: 8px 12px;
+        border-radius: var(--aivp-radius-sm); border: 1px solid var(--aivp-border-strong);
+        background: var(--aivp-surface-raised); color: var(--aivp-text);
+      }
+      input.field:focus-visible { outline: 2px solid var(--aivp-focus); outline-offset: 1px; border-color: var(--aivp-brand); }
+
+      /* --- shape --- */
+      .shape { display: inline-grid; place-items: center; width: 108px; height: 74px;
+        background: var(--aivp-surface-raised); border: 1px solid var(--aivp-border);
+        font-family: ui-monospace, Menlo, monospace; font-size: 0.68rem; color: var(--aivp-text-muted); }
+
+      /* --- scheme panels --- */
+      .panes { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+      .pane { border-radius: var(--aivp-radius-lg); border: 1px solid var(--aivp-border);
+        background: var(--aivp-surface); padding: 18px; }
+      .pane h4 { margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: var(--aivp-text); }
+      .pane .sub { margin: 0 0 14px; font-size: 0.78rem; color: var(--aivp-text-muted); }
+
+      /* --- mock player, tokens only --- */
+      .player { border-radius: var(--aivp-radius-lg); overflow: hidden; background: var(--aivp-surface); border: 1px solid var(--aivp-border); }
+      .player .frame { aspect-ratio: 16/9; background: linear-gradient(135deg, #2a2f3d, #12141d); position: relative; display: grid; place-items: center; }
+      .player .badge {
+        position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 7px;
+        padding: 5px 11px; border-radius: var(--aivp-radius);
+        background: var(--aivp-plate-strong); border: 1px solid var(--aivp-state-practice);
+        color: var(--aivp-state-practice); font-size: var(--aivp-caption); font-variant-numeric: tabular-nums;
+      }
+      .player .bar { padding: 10px 12px 12px; background: var(--aivp-surface-raised); }
+      .player .track { height: 5px; border-radius: var(--aivp-radius-xs); background: var(--aivp-track); position: relative; overflow: hidden; }
+      .player .track .buffered { position: absolute; inset: 0 32% 0 0; background: var(--aivp-border-strong); }
+      .player .track .played { position: absolute; inset: 0 62% 0 0; background: var(--aivp-text); }
+      .player .track .looprange { position: absolute; inset: 0 24% 0 44%; background: var(--aivp-state-practice); opacity: 0.45; }
+      .player .track .mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--aivp-text); opacity: 0.55; }
+      .player .ctl { display: flex; align-items: center; gap: 14px; margin-top: 10px; color: var(--aivp-text); font-size: var(--aivp-text-sm); }
+      .player .ctl .time { color: var(--aivp-text-muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+      .player .ctl .speed { color: var(--aivp-state-practice); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+      .tnum { font-variant-numeric: tabular-nums; }
+      table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+      th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--aivp-border); }
+      th { color: var(--aivp-text-muted); font-weight: 600; font-size: 0.78rem; }
+      td.ratio { font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; }
+      .pass { color: var(--aivp-brand-strong); font-weight: 600; }
+
+      .switch { display: flex; gap: 8px; margin-left: auto; }
+      .switch button {
+        font: inherit; font-size: 0.8rem; padding: 7px 15px; cursor: pointer;
+        border-radius: var(--aivp-radius-pill); border: 1px solid var(--aivp-border-strong);
+        background: transparent; color: var(--aivp-text);
+      }
+      .switch button[aria-pressed="true"] { background: var(--aivp-brand-strong); border-color: var(--aivp-brand-strong); color: var(--aivp-text-on-brand); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Sistema de diseño</h1>
+        <div class="switch" role="group" aria-label="Tema">
+          <button type="button" data-theme="pluranza" aria-pressed="true">Pluranza</button>
+          <button type="button" data-theme="aivp" aria-pressed="false">AIVP original</button>
+        </div>
+      </header>
+      <p class="note">
+        Esta página lee <code>src/styles/</code> directamente: no repite ningún valor, así que
+        no puede desincronizarse del sistema real. Los botones de arriba cambian el tema de
+        toda la página; el player de abajo se queda oscuro en los dos, a propósito.
+      </p>
+
+      <h2>Paleta</h2>
+      <p class="note">Cada muestra imprime su propio token y el valor que el navegador resuelve para el tema activo.</p>
+      <h3>Superficies</h3>
+      <div class="grid" id="sw-surface"></div>
+      <h3>Texto</h3>
+      <div class="grid" id="sw-text"></div>
+      <h3>Marca</h3>
+      <div class="grid" id="sw-brand"></div>
+      <h3>Estado de práctica</h3>
+      <p class="note">
+        Color propio, distinto del azul de marca. Sólo tres usos: loop activo, velocidad
+        distinta de 1x, e indicador persistente de práctica.
+      </p>
+      <div class="grid" id="sw-state"></div>
+      <h3>Estructura</h3>
+      <div class="grid" id="sw-line"></div>
+
+      <h2>Tipografía</h2>
+      <p class="note">
+        Source Sans 3, en lugar del <code>myriadpro</code> que el sitio declara pero no sirve.
+        Las cifras conservan <code>tabular-nums</code>: <span class="tnum">00:00 · 11:11 · 88:88</span>
+      </p>
+      <div id="type-scale"></div>
+
+      <h2>Botones y campos</h2>
+      <h3>Primario</h3>
+      <div class="btn-row">
+        <button class="btn">Normal</button>
+        <button class="btn is-hover">Hover</button>
+        <button class="btn is-focus">Foco visible</button>
+        <button class="btn" disabled>Deshabilitado</button>
+      </div>
+      <h3>Secundario</h3>
+      <div class="btn-row">
+        <button class="btn secondary">Normal</button>
+        <button class="btn secondary" disabled>Deshabilitado</button>
+        <button class="btn state">Estado de práctica</button>
+      </div>
+      <h3>Campo</h3>
+      <div class="btn-row">
+        <input class="field" value="Texto de ejemplo" aria-label="Campo de ejemplo" />
+      </div>
+
+      <h2>Radios y sombras</h2>
+      <div class="btn-row" id="shapes"></div>
+      <div class="btn-row" id="shadows"></div>
+
+      <h2>El player en los dos esquemas</h2>
+      <p class="note">
+        Mismos tokens semánticos, distinto conjunto de valores. La superficie del player es
+        oscura en ambos: un fondo claro alrededor del video altera la percepción del contraste
+        y del color de lo que se ve dentro.
+      </p>
+      <div class="panes">
+        <div class="pane" data-aivp-scheme="dark">
+          <h4>Esquema oscuro</h4>
+          <p class="sub">La superficie del player</p>
+          <div class="player" id="player-dark"></div>
+        </div>
+        <div class="pane" data-aivp-scheme="light">
+          <h4>Esquema claro</h4>
+          <p class="sub">El dashboard y el cromo alrededor</p>
+          <div class="player" id="player-light" data-aivp-scheme="dark"></div>
+        </div>
+      </div>
+
+      <h2>Contraste</h2>
+      <p class="note">Calculado en vivo sobre los tokens del tema activo, fórmula WCAG 2.1. AA pide 4.5:1 en texto normal y 3:1 en texto grande y elementos de interfaz.</p>
+      <table id="contrast"><thead><tr>
+        <th>Par</th><th>Ratio</th><th>AA normal</th><th>AA grande / UI</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+
+    <script type="module" src="./styleguide.js"></script>
+  </body>
+</html>

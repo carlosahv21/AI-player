@@ -1,0 +1,138 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* the slider ends flush against whatever follows it in the bar (the
+     quality button), so it gets its own breathing room */
+  margin-right: 10px;
+}
+
+.btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/*
+ * ponytail: track and thumb are drawn by hand instead of leaning on
+ * accent-color, because themes style bare input[type="range"] (Astra paints a
+ * fat blue slider) and an accent-only rule loses to that.
+ */
+.slider {
+  width: 72px;
+  height: 14px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: var(--aivp-radius-sm);
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+/* box-shadow and border must be cleared too: Astra draws the track 8.6px tall
+ * with a grey 2.6px shadow, which reads as a second bar under this one. */
+.wrap input[type="range"].slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border: 0;
+  border-radius: var(--aivp-radius-sm);
+  box-shadow: none;
+  background: linear-gradient(
+      to right,
+      var(--aivp-text) 0,
+      var(--aivp-text) var(--aivp-vol, 100%),
+      transparent var(--aivp-vol, 100%)
+    ),
+    var(--aivp-track);
+}
+
+.wrap input[type="range"].slider::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: var(--aivp-radius-sm);
+  box-shadow: none;
+  background: var(--aivp-track);
+}
+
+.wrap input[type="range"].slider::-moz-range-progress {
+  height: 4px;
+  border: 0;
+  border-radius: var(--aivp-radius-sm);
+  box-shadow: none;
+  background: var(--aivp-text);
+}
+
+/* Astra repaints the thumb from its inline customizer CSS, which loads before
+ * this file but matches at (0,1,1). Anchoring on .wrap too puts these at
+ * (0,2,1) so they win outright. */
+.wrap input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--aivp-text);
+  box-shadow: none;
+}
+
+.wrap input[type="range"].slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--aivp-text);
+  box-shadow: none;
+}
+
+/*
+ * The theme repaints a focused input with `border-width: thin` at (0,2,1)
+ * (input[type="range"]:focus), which outranks .slider's own `border: 0` at
+ * (0,1,0): the moment the slider took focus a hairline box appeared around
+ * it. Clearing outline alone never touched it — it was a border, not an
+ * outline. This selector matches at (0,3,1) and wins in both states.
+ */
+.wrap input[type="range"].slider:focus,
+.wrap input[type="range"].slider:focus-visible {
+  border: 0;
+  outline: none;
+}
+
+/*
+ * ponytail: focus lands on the thumb, not as a box around the whole slider.
+ *
+ * Unlike a <button>, an input[type="range"] matches :focus-visible when you
+ * drag it with the mouse, so the old outline drew a rectangle around the
+ * control on every volume change — a keyboard affordance shown to someone who
+ * never used the keyboard. A ring on the thumb still marks the focused
+ * control for Tab users, and reads as part of the slider when it appears.
+ */
+.wrap input[type="range"].slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--aivp-plate-strong), 0 0 0 4px var(--aivp-text);
+}
+
+.wrap input[type="range"].slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--aivp-plate-strong), 0 0 0 4px var(--aivp-text);
+}
+
+@media (max-width: 639px) {
+  .slider {
+    display: none;
+  }
+}

@@ -1,0 +1,48 @@
+/*
+ * Pinned to the panel's top-right corner. Panels are positioned, so this
+ * anchors to whichever one contains it.
+ */
+.close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--aivp-border);
+  border-radius: var(--aivp-radius);
+  /*
+   * Opaque, not transparent: the panel's corner sits over the player's own
+   * chrome (the settings gear lands in the same spot), and a see-through
+   * button read as two overlapping icons.
+   */
+  background: var(--aivp-surface-raised);
+  color: var(--aivp-text-muted);
+  cursor: pointer;
+}
+
+.close:hover:not(:disabled) {
+  background: var(--aivp-border);
+  color: var(--aivp-text);
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@media (min-width: 640px) and (min-height: 481px) {
+  .close {
+    top: 10px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+  }
+}

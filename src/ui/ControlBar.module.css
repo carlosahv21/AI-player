@@ -1,0 +1,412 @@
+.bar {
+  display: grid;
+  align-items: center;
+  gap: 4px 8px;
+  width: 100%;
+  /* ponytail: overlay on the video, gradient keeps controls legible on any frame */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* stacking ladder: rail 4 < bar 5 < badge 6 < sheet 7 < panels 8 */
+  z-index: var(--aivp-z-bar);
+  background: var(--aivp-bar-gradient);
+  opacity: 0;
+  transition: opacity 160ms;
+  pointer-events: none;
+}
+
+.barVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .bar,
+  .railLeft {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /*
+   * ...but the bar's own box is not all controls. Its top padding carries the
+   * gradient and covers 54% of the frame on a phone, which swallowed every
+   * tap and made the double-tap zones and press-and-hold unreachable there.
+   * The container stays transparent to the pointer and its children take
+   * their own hits back.
+   */
+  .bar {
+    pointer-events: none;
+  }
+
+  .bar > * {
+    pointer-events: auto;
+  }
+}
+
+/* desktop: everything on one bar */
+.full {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "progress progress progress progress"
+    "left . practice chrome";
+  /* tall enough that the gradient covers the practice row above it */
+  padding: 96px 20px 12px;
+}
+
+/* ponytail: desktop puts the practice cluster on its own row above the bar,
+   the way the reference does, so the bar keeps only transport and chrome */
+/* ponytail: only as wide as its buttons, so it never blocks clicks on the
+   video; a full-width strip would swallow them even when transparent */
+.practiceRow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 104px;
+  /* ponytail: above .bar — its 76px top padding reaches up here and would
+     otherwise swallow every click on this row */
+  z-index: var(--aivp-z-bar-item);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 160ms;
+  pointer-events: none;
+}
+
+.practiceRowOn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .practiceRow {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* landscape phone: timeline + time on one line, settings FAB at the end */
+.rail {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "left progress chrome";
+  align-items: center;
+  padding: 0 5px;
+  gap: 12px;
+}
+
+/* portrait phone: two tight rows, video stays visible */
+.compact {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "progress progress progress"
+    "left . chrome";
+  padding: 16px 8px 8px;
+  gap: 2px 4px;
+}
+
+.left {
+  grid-area: left;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* ponytail: 0 5px padding puts the clock on the edge, inset it here */
+.rail .left {
+  padding-left: 10px;
+}
+
+.progress {
+  grid-area: progress;
+  min-width: 0;
+}
+
+.practice {
+  grid-area: practice;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chrome {
+  grid-area: chrome;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.chromeBtn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--aivp-text-sm);
+}
+
+.chromeBtn:hover {
+  background: var(--aivp-border);
+}
+
+.chromeBtn[aria-pressed="true"] {
+  color: var(--aivp-brand);
+}
+
+/* ---- landscape rails ---- */
+
+.railLeft {
+  position: absolute;
+  /* ponytail: PracticeBadge sits top-left; the rail starts below it */
+  top: 34px;
+  bottom: 54px;
+  left: 10px;
+  z-index: var(--aivp-z-chrome);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 160ms;
+  pointer-events: none;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms;
+}
+
+/* a modal panel is on top; nothing behind it should be reachable */
+.hidden * {
+  pointer-events: none;
+}
+
+.railVisible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- sections ---- */
+
+.sections {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sectionNav {
+  min-width: 32px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--aivp-text-xl);
+}
+
+.sectionNav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sectionName {
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--aivp-text-sm);
+  opacity: 0.85;
+}
+
+.more {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--aivp-text-2xl);
+}
+
+.seekBtn {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seekIcon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.seekNum {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1px;
+  font-size: var(--aivp-text-2xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ---- portrait sheet ---- */
+
+.sheetWrap {
+  position: absolute;
+  inset: 0;
+  z-index: var(--aivp-z-sheet);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--aivp-scrim);
+  cursor: pointer;
+}
+
+.sheet {
+  position: relative;
+  background: var(--aivp-surface-raised);
+  border-radius: 14px 14px 0 0;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* ponytail: capped so the video stays visible above the sheet */
+  max-height: 55%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.grabber {
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--aivp-radius-xs);
+  background: var(--aivp-track);
+  margin-bottom: 2px;
+}
+
+.sheetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sheetLabel {
+  color: var(--aivp-text-muted);
+  font-size: var(--aivp-text-base);
+  min-width: 5.5rem;
+}
+
+.sheetChrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* one item in the desktop practice row, matching PracticeControls' shape */
+.practiceItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 112px;
+  min-height: 80px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--aivp-radius-lg);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/*
+ * `:not(:disabled)` is not a guard here, it is the specificity: at (0,2,0)
+ * this tied the button reset in Player.module.css and lost on source order,
+ * so Velocidad was the only item in this row that ignored the pointer.
+ * Espejo and Loop come from PracticeControls, whose .btn:hover:not(:disabled)
+ * already sits at (0,3,0) — this now matches them.
+ */
+.practiceItem:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.practiceIcon {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.practiceItem[aria-pressed="true"] {
+  color: var(--aivp-state-practice);
+}
+
+.practiceLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.2;
+  font-size: var(--aivp-text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aivp-text-muted);
+  white-space: nowrap;
+}
+
+.practiceLabel b {
+  font-size: var(--aivp-text-sm);
+  font-weight: 700;
+  color: var(--aivp-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.practiceItem[aria-pressed="true"] .practiceLabel b {
+  color: var(--aivp-state-practice);
+}
+
+/* ponytail: recede while the timeline tooltip is up — both stay on screen,
+   the one being used stays readable */
+.practiceRowDim {
+  opacity: 0.12;
+  transition: opacity 120ms ease-out;
+}

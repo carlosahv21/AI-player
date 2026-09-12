@@ -1,0 +1,220 @@
+/*
+ * Pluranza theme. Every value traces to the production CSS of pluranza.com;
+ * see docs/pluranza-tokens.md for the extraction and the line it came from.
+ *
+ * Two schemes over one set of semantic names:
+ *   dark   the player surface (default)
+ *   light  the dashboard and any chrome around the player
+ *
+ * Worth knowing: pluranza.com is itself dark — `html{background:#151823}`.
+ * The dark player is not an exception to the brand system, it *is* the brand
+ * system. The light dashboard is the deliberate departure.
+ */
+
+/* --- Dark: the player ---------------------------------------------------- */
+
+[data-aivp-theme="pluranza"],
+[data-aivp-theme="pluranza"] [data-aivp-scheme="dark"],
+[data-aivp-theme="pluranza"][data-aivp-scheme="dark"] {
+  /* Surfaces — the brand's own three-step dark ladder */
+  --aivp-surface: #151823; /* html background, 25 sections */
+  --aivp-surface-raised: #1e2230; /* .card_icon_text, .card_teachers */
+  --aivp-surface-sunken: #0e1019; /* .accordion_style_title */
+  --aivp-scrim: rgb(14 16 25 / 0.78); /* rgba(14,16,25,0.78) */
+  --aivp-plate: rgb(14 16 25 / 0.72);
+
+  /* Text */
+  --aivp-text: #ffffff; /* 15.13:1 on surface */
+  --aivp-text-muted: #a8b0bd; /* lifted from #98a1a8 to clear 4.5:1 */
+  --aivp-text-dim: #c9ced8;
+  /*
+   * Dark surface, filled brand element: white on this blue is 3.02:1 and
+   * fails AA — the site gets away with it only because its buttons are
+   * 20–26px. The player's are small, so a filled brand control takes the
+   * dark ink instead: 5.87:1 on --aivp-brand, 7.67:1 on --aivp-brand-strong.
+   */
+  --aivp-text-on-brand: #151823;
+  --aivp-text-on-state: #151823; /* dark on amber: 8.62:1 */
+
+  /*
+   * Brand blue. #039fd9 gives 5.87:1 on #151823 — it passes AA on dark as
+   * text, so no lightened variant is needed for reading. --aivp-brand-strong
+   * is the lifted one, used where the blue must read against the raised
+   * surface or carry a thin shape.
+   *
+   * Hover jumps to green, not to a darker blue. That is the site's own
+   * convention, repeated across eight independent rules
+   * (.ilc_cta_button:hover, .button_lp_pay:hover, .wpforms-submit:hover…).
+   */
+  --aivp-brand: #039fd9;
+  --aivp-brand-raw: #039fd9; /* on dark the true blue already passes */
+  --aivp-brand-strong: #42b7e2; /* 7.67:1, brand +25% toward white */
+  --aivp-brand-hover: #1bb185; /* the brand's green hover */
+  --aivp-brand-soft: rgb(3 159 217 / 0.16); /* cf. #039fd912 on the site */
+  --aivp-brand-soft-hover: rgb(3 159 217 / 0.24); /* rgba(3,159,217,0.24) */
+  --aivp-brand-soft-strong: rgb(3 159 217 / 0.32);
+
+  /*
+   * Practice state — amber #ff9f1c, a real brand colour (8 `color` uses).
+   *
+   * Chosen over the green #1bb185 for two reasons. The green already means
+   * "hover / confirm" in Pluranza's system, so reusing it would keep exactly
+   * the ambiguity this split is meant to remove. And amber against a cyan
+   * blue is close to the largest hue separation the brand palette allows —
+   * it survives red-green colour blindness, where blue and green are the
+   * pair that collapses. 8.62:1 on surface, the palette's best after white.
+   */
+  --aivp-state-practice: #ff9f1c;
+  --aivp-state-practice-soft: rgb(255 159 28 / 0.16);
+
+  /*
+   * Speed rail. Slow reads as brand blue, fast as the practice amber: the
+   * rail's warm end and the practice indicator are the same signal.
+   */
+  --aivp-speed-slow: #42b7e2;
+  --aivp-speed-normal: #ffffff;
+  --aivp-speed-fast: #ff9f1c;
+
+  /* Structure */
+  --aivp-border: rgb(24 64 89 / 0.7); /* #184059, the brand's dark border */
+  --aivp-border-strong: #184059;
+  --aivp-line: rgb(255 255 255 / 0.22);
+  --aivp-track: rgb(255 255 255 / 0.28);
+  --aivp-focus: #ffffff; /* 15.13:1 on surface; see focus note below */
+
+  /* Type — see the light block, shared */
+  --aivp-font: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+  --aivp-font-numeric: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+
+  /*
+   * Shape. The brand's radii: 100px pills for buttons (30 uses), 10px for
+   * cards (24), 5px for inputs and badges (8). The player's controls are far
+   * smaller than the site's, so the pill is reserved for genuine buttons and
+   * badges; panels take the card radius.
+   */
+  --aivp-radius-sm: 5px;
+  --aivp-radius: 8px;
+  --aivp-radius-lg: 10px;
+  --aivp-radius-pill: 100px;
+
+  /*
+   * Pluranza separates surfaces with colour, not shadow — the site has three
+   * box-shadow rules total, two of them malformed. Shadow appears here only
+   * where a panel floats over moving video and colour alone cannot hold the
+   * edge.
+   */
+  --aivp-radius-xs: 3px;
+  --aivp-shadow-sm: 0 1px 4px rgb(0 0 0 / 0.5);
+  --aivp-shadow-md: 0 3px 8px rgb(26 26 26 / 0.1), 0 8px 24px rgb(0 0 0 / 0.5);
+
+  /* Plates, tinted with the brand's own dark rather than neutral black */
+  --aivp-plate-strong: rgb(14 16 25 / 0.92);
+  --aivp-plate-soft: rgb(14 16 25 / 0.5);
+
+  /* Legibility over video — frame-dependent, so identical in both schemes */
+  --aivp-text-shadow: 0 1px 4px rgb(0 0 0 / 0.9);
+  --aivp-icon-shadow: drop-shadow(0 1px 4px rgb(0 0 0 / 0.8));
+  --aivp-icon-shadow-lg: drop-shadow(0 2px 8px rgb(0 0 0 / 0.7));
+  --aivp-bar-gradient: linear-gradient(to top, rgb(14 16 25 / 0.92), rgb(14 16 25 / 0));
+  --aivp-letterbox: #000;
+}
+
+/* --- Light: the dashboard ------------------------------------------------ */
+
+[data-aivp-theme="pluranza"] [data-aivp-scheme="light"],
+[data-aivp-theme="pluranza"][data-aivp-scheme="light"] {
+  /* Surfaces */
+  --aivp-surface: #f7f8fa;
+  --aivp-surface-raised: #ffffff;
+  --aivp-surface-sunken: #eceeef; /* #eceeef, on the site */
+  --aivp-scrim: rgb(21 24 35 / 0.45);
+  --aivp-plate: rgb(255 255 255 / 0.9);
+
+  /* Text — the brand's dark surface colour becomes the text colour */
+  --aivp-text: #151823; /* 16.65:1 on surface */
+  --aivp-text-muted: #5b6672; /* 5.85:1; brand's #606e79 lifted slightly */
+  --aivp-text-dim: #606e79;
+  --aivp-text-on-brand: #ffffff;
+  --aivp-text-on-state: #ffffff;
+
+  /*
+   * On light the true brand blue is the problem case: #039fd9 is 2.84:1 on
+   * the app background and 3.02:1 under white text — it fails AA both ways.
+   * So in this scheme --aivp-brand resolves to the darkened blue as well,
+   * and any component that reaches for it is accessible by construction
+   * rather than by remembering to pick the right variant. The true brand
+   * blue stays available as --aivp-brand-raw for large shapes that carry no
+   * text: chart bars, fills, rules.
+   */
+  --aivp-brand: #0277a3;
+  --aivp-brand-raw: #039fd9;
+  --aivp-brand-strong: #0277a3;
+  --aivp-brand-hover: #148564; /* the brand green, darkened to 4.6:1 */
+  --aivp-brand-soft: rgb(3 159 217 / 0.1);
+  --aivp-brand-soft-hover: rgb(3 159 217 / 0.18);
+  --aivp-brand-soft-strong: rgb(3 159 217 / 0.28);
+
+  /*
+   * The practice amber, darkened until it carries white text and reads on a
+   * light ground: 5.02:1 both ways. Kept in the amber family rather than
+   * pushed further down, so it still reads as the same signal as the dark
+   * scheme's #ff9f1c instead of as a separate brown.
+   */
+  --aivp-state-practice: #b45309;
+  --aivp-state-practice-soft: rgb(255 159 28 / 0.18);
+
+  --aivp-speed-slow: #0277a3;
+  --aivp-speed-normal: #151823;
+  --aivp-speed-fast: #b45309;
+
+  /* Structure */
+  --aivp-border: #dee1e3; /* #dee1e3 on the site */
+  --aivp-border-strong: #adb4b9; /* #adb4b9 */
+  --aivp-line: rgb(21 24 35 / 0.12);
+  --aivp-track: rgb(21 24 35 / 0.14);
+  --aivp-focus: #0277a3;
+
+  --aivp-font: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+  --aivp-font-numeric: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+
+  --aivp-radius-sm: 5px;
+  --aivp-radius: 8px;
+  --aivp-radius-lg: 10px;
+  --aivp-radius-pill: 100px;
+
+  --aivp-radius-xs: 3px;
+  --aivp-shadow-sm: 0 1px 3px rgb(26 26 26 / 0.1);
+  --aivp-shadow-md: 0 3px 8px rgb(26 26 26 / 0.1); /* the site's own shadow */
+
+  --aivp-plate-strong: rgb(255 255 255 / 0.96);
+  --aivp-plate-soft: rgb(255 255 255 / 0.7);
+
+  /*
+   * Video is dark whatever the page is, so chrome sitting on the frame keeps
+   * the dark treatment even in the light scheme.
+   */
+  --aivp-text-shadow: 0 1px 4px rgb(0 0 0 / 0.9);
+  --aivp-icon-shadow: drop-shadow(0 1px 4px rgb(0 0 0 / 0.8));
+  --aivp-icon-shadow-lg: drop-shadow(0 2px 8px rgb(0 0 0 / 0.7));
+  --aivp-bar-gradient: linear-gradient(to top, rgb(14 16 25 / 0.92), rgb(14 16 25 / 0));
+  --aivp-letterbox: #000;
+}
+
+/*
+ * Type scale. Shared by both schemes, derived from the site's real sizes
+ * (body 18px/1.6, h1 36/700 → h6 16) and expressed in rem so the player
+ * scales with the host page. The player's chrome sits below body size by
+ * design: it is furniture around video, not reading matter.
+ */
+[data-aivp-theme="pluranza"] {
+  --aivp-text-2xs: 0.58rem;
+  --aivp-text-xs: 0.68rem;
+  --aivp-text-sm: 0.82rem;
+  --aivp-text-base: 0.9rem;
+  --aivp-text-lg: 1rem; /* 16px = h6 */
+  --aivp-text-xl: 1.125rem; /* 18px = body */
+  --aivp-text-2xl: 1.25rem; /* 20px = h4 */
+  --aivp-weight-normal: 400;
+  --aivp-weight-medium: 500;
+  --aivp-weight-bold: 600; /* the site's button and h2/h3 weight */
+}

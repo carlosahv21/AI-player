@@ -1,0 +1,19 @@
+/*
+ * Source Sans 3, the stand-in for Pluranza's declared `myriadpro`.
+ *
+ * The site declares `body{font-family:'myriadpro'}` but ships no @font-face
+ * and no font file — verified across all four stylesheets and thirteen inline
+ * blocks. Myriad Pro is a commercial Adobe face with no redistributable web
+ * licence, so most visitors already see a system fallback. Source Sans 3 is
+ * Adobe's own open humanist grotesque from the same lineage: the closest
+ * honest match, and it carries true tabular figures, which the digits need.
+ *
+ * ponytail: @import from the Google Fonts CDN rather than vendoring four woff2
+ * files. The browser dedupes by URL, so if the host page already loads this
+ * family the request is not repeated. Swap this one line for a self-hosted
+ * @font-face block if the plugin must work offline.
+ *
+ * Weights match what the brand actually uses: 400 body, 600 buttons and
+ * mid-level headings, 700 h1.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap");

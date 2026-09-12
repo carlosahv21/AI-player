@@ -1,0 +1,8 @@
+/*
+ * The one stylesheet the player and the dashboard both pull in.
+ * Order matters: contract, then font, then themes.
+ */
+@import "./font.css";
+@import "./tokens.css";
+@import "./themes/aivp.css";
+@import "./themes/pluranza.css";

@@ -1,0 +1,48 @@
+.bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--aivp-z-chrome);
+  max-width: 60%;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: var(--aivp-text-shadow);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--aivp-text-base);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--aivp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instructor {
+  margin: 2px 0 0;
+  font-size: var(--aivp-text-xs);
+  color: var(--aivp-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* desktop: pinned top-left instead of centred */
+.left {
+  left: 20px;
+  transform: none;
+  text-align: left;
+  max-width: 46%;
+}
+
+.left .title {
+  font-size: var(--aivp-text-lg);
+}
+
+.left .instructor {
+  font-size: var(--aivp-text-sm);
+}

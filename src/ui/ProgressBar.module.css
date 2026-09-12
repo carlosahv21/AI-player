@@ -1,0 +1,364 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.track {
+  position: relative;
+  /* above the heatmap curve behind it */
+  z-index: 1;
+  width: 100%;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /*
+   * Clips the X axis only. The playhead is pulled 2px left of its position so
+   * its right edge sits on the fill's edge; at the start of the video that
+   * pull puts it outside the rail, the one thing in the bar crossing x=0,
+   * which makes the curve beside it read as shifted right.
+   *
+   * The vertical bounds are deliberately huge: the heatmap crests and the
+   * needle both rise far above this 12px box, and clipping them is what
+   * `overflow: visible` on .segment exists to prevent.
+   */
+  clip-path: inset(-100px 0 -100px 0);
+}
+
+/* ponytail: each section is its own bar; only the hovered one grows, the way
+   YouTube does chapters. The 12px track holds the tallest state, so growing
+   changes no layout. The heatmap curve rides above the track's box — .wrap's
+   44px min-height leaves room for it, so nothing needs to reserve space.
+   The played fill lives INSIDE each segment, so the 2px flex gap between
+   segments stays unpainted and the section divisions read at any progress. */
+/* ponytail: align-self:center stops the flex row stretching the segment,
+   so its own height (and the taller .hot) actually applies */
+.segment {
+  position: relative;
+  height: 4px;
+  align-self: center;
+  min-width: 0;
+  flex-basis: 0;
+  border-radius: var(--aivp-radius-xs);
+  /* the heatmap crests rise above the segment's box on purpose */
+  overflow: visible;
+  transition:
+    height 160ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    border-radius 160ms ease-out;
+}
+
+/* ponytail: only the pointed/focused segment grows — a :focus-within rule
+   here would grow every segment at once */
+.hot {
+  height: 9px;
+  border-radius: var(--aivp-radius-xs);
+}
+
+/* ponytail: with no sections there is no hit layer, so hovering the whole
+   wrap is what grows the single segment */
+.wrap:hover .segment:only-child {
+  height: 8px;
+}
+
+.rail,
+.buffered,
+.played,
+.loop,
+.draft {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rail {
+  right: 0;
+  background: var(--aivp-track);
+}
+
+.buffered {
+  background: var(--aivp-text-muted);
+}
+
+/*
+ * The watched part of the rail, filled IN the rail's own box — not in a
+ * separate row above it, which is what the old .played did before the heatmap
+ * took that band over.
+ *
+ * One flat brand blue, no gradient: the heatmap curve above already carries
+ * the gradient, and a second one here read as two unrelated blue shapes. Flat
+ * also means a section filled long ago looks exactly like one just finished.
+ *
+ * It inherits the segment's border-radius and grows with it on hover, since
+ * height is 100% of a box that animates 4px -> 9px.
+ */
+.played {
+  width: 0;
+  background: var(--aivp-brand-strong, var(--aivp-brand));
+  border-radius: inherit;
+}
+
+/*
+ * The playhead: the one signal that survives a valley in the heatmap curve.
+ * Where the curve sinks to its baseline the clip edge is 1-2px tall and reads
+ * as nothing, so this needle carries the exact position instead.
+ *
+ * It is a child of .segment, not of .wrap, and takes the same `local(shown)`
+ * that sizes .played. That is the whole point: flex resolves each segment's
+ * box with its own subpixel rounding, so a needle positioned in .wrap by a
+ * calc() that reproduced flex's arithmetic agreed on paper and missed by a
+ * fraction on screen. Sharing the parent and the expression makes the needle
+ * and the fill's right edge the same pixel by construction.
+ *
+ * It spans the heatmap's band AND the rail in one unbroken line, so the eye
+ * never has to bridge a gap between the two.
+ *
+ * The two axes come from DIFFERENT boxes on purpose:
+ *
+ *   X — from the segment, which is the whole reason it lives here.
+ *   Y — from .wrap, via a centre anchor the segment's height cannot move.
+ *
+ * Anchoring Y to the segment too was a bug: .segment animates 4px -> 9px on
+ * hover, so a needle pinned to its underside slid 2.5px up (over 160ms, with
+ * the transition) while the curve, which lives in .wrap, stayed put. The one
+ * element meant to tie the two together was the one that drifted between them.
+ */
+.playhead {
+  position: absolute;
+  /*
+   * Pinned to the segment's centre — the only line that stays put whatever
+   * height the segment animates to — then pushed down to the rail's underside
+   * by half the 4px rail. The hovered segment grows to 9px, but only that one
+   * does, and sizing for the tallest state would hang the needle under every
+   * other segment.
+   */
+  bottom: 50%;
+  /* half the 4px rail: the needle's foot rests on the rail's underside, and
+     the segment growing to 9px on hover cannot move a centre-anchored edge */
+  margin-bottom: -2px;
+  /* the 2px below centre, the 5px clearance and the curve's 17px band, so the
+     needle keeps reaching the crest if either offset changes */
+  height: calc(2px + 5px + 17px);
+  width: 2px;
+  /*
+   * Pulled its full width left, not half: `left` is where the blue fill ENDS,
+   * so the needle's right edge has to land on that pixel. Centring it (the
+   * -50% / -1px form) left half the needle past the fill, which reads as the
+   * needle running ahead of the blue.
+   *
+   * Near the origin that pull would hang the needle outside the rail's left
+   * edge — the only thing in the bar crossing x=0, and beside it the curve
+   * reads as shifted right. .track clips it back on the X axis (see there).
+   */
+  margin-left: -2px;
+  background: var(--aivp-brand-strong, var(--aivp-brand));
+  border-radius: var(--aivp-radius-xs);
+  pointer-events: none;
+  /* over .played and .buffered, under the loop marks */
+  z-index: 2;
+}
+
+.loop {
+  background: var(--aivp-state-practice);
+  opacity: 0.45;
+}
+
+.hitbar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hit {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  /* local stacking inside the track: hits over marks, handle over hits */
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/*
+ * ponytail: the section hit draws its own focus ring, inset over the bar.
+ *
+ * It is a <button>, so Player's fallback ring landed on it too: a second
+ * outline 2px OUTSIDE a full-width element, which boxed the whole control
+ * row. The `.wrap` prefix outranks that rule (0,2,0 over 0,1,1) so the
+ * focused section gets one ring, drawn on the segment itself.
+ */
+.wrap .hit:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: -2px;
+  border-radius: var(--aivp-radius-sm);
+}
+
+
+
+.draft {
+  background: var(--aivp-state-practice);
+  opacity: 0.3;
+}
+
+.draftMark {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  margin-left: -1px;
+  transform: translateY(-50%);
+  background: var(--aivp-state-practice);
+  pointer-events: none;
+}
+
+/* ponytail: 44px touch target, 4px of visible grip */
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 2;
+}
+
+.handleGrip {
+  width: 4px;
+  height: 18px;
+  border-radius: var(--aivp-radius-xs);
+  background: var(--aivp-state-practice);
+  box-shadow: 0 0 0 1px var(--aivp-plate);
+  pointer-events: none;
+}
+
+.handle:hover .handleGrip,
+.handle:focus-visible .handleGrip {
+  height: 22px;
+  width: 6px;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: -8px;
+  border-radius: var(--aivp-radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment,
+  .hitName {
+    transition: none;
+  }
+}
+
+/* ponytail: a thin guide under the pointer, with the time it maps to */
+.guide {
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 20px;
+  margin-left: -0.5px;
+  transform: translateY(-50%);
+  background: var(--aivp-border-strong);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* one label, riding the pointer: section name over the time it maps to */
+
+/*
+ * The frame sits above the caption, and is absent entirely when the payload
+ * carries no sprite. Width matches the label's fixed box, so the tooltip is
+ * the same shape with or without a preview.
+ */
+.guideThumb {
+  margin-bottom: 3px;
+}
+
+.guideLabel {
+  position: absolute;
+  z-index: var(--aivp-z-tooltip);
+  bottom: calc(100% + 5px);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 7px;
+  border-radius: var(--aivp-radius-sm);
+  /* ponytail: near-opaque black plus a shadow so the dimmed practice row
+     behind it never bleeds through the label */
+  background: var(--aivp-surface-sunken);
+  border: 1px solid var(--aivp-border);
+  box-shadow: var(--aivp-shadow-md);
+  color: var(--aivp-text);
+  white-space: nowrap;
+  /* ponytail: one fixed width so every tooltip is the same box, whatever
+     the section is called; longer names ellipsis inside it */
+  width: 132px;
+  animation: guideIn 130ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guideLabel {
+    animation: none;
+  }
+}
+
+/* ponytail: min-width:0 is what lets a flex child shrink far enough for
+   text-overflow to fire; max-width alone never triggers the ellipsis */
+.guideName {
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--aivp-text-xs);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guideTime {
+  font-size: var(--aivp-text-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* ponytail: fade only — animating transform here would fight the
+   data-align rules that pin the label at the ends */
+@keyframes guideIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ponytail: phones need the compact label, a desktop pointer sits further
+   from the bar and the small type reads as an afterthought */
+@media (min-width: 640px) and (min-height: 481px) {
+  .guideLabel {
+    gap: 2px;
+    padding: 5px 10px;
+    border-radius: var(--aivp-radius);
+    width: 176px;
+  }
+
+  .guideName {
+    font-size: var(--aivp-text-base);
+  }
+
+  .guideTime {
+    font-size: var(--aivp-text-sm);
+  }
+}

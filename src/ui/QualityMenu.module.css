@@ -1,0 +1,73 @@
+.wrap {
+  position: relative;
+}
+
+.btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--aivp-surface-raised);
+  border: 1px solid var(--aivp-border);
+  border-radius: var(--aivp-radius-lg);
+  padding: 5px;
+  z-index: var(--aivp-z-menu);
+  box-shadow: var(--aivp-shadow-md);
+  min-width: 116px;
+}
+
+.option {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 0 10px;
+  font-size: var(--aivp-text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.option:hover {
+  background: var(--aivp-border);
+}
+
+.option[aria-pressed="true"] {
+  background: var(--aivp-brand-soft);
+  color: var(--aivp-brand);
+  font-weight: 600;
+}
+
+/* ponytail: a quiet chip, not a second colour. It marks the HD tiers without
+ * competing with the selected-row highlight. */
+.badge {
+  font-size: var(--aivp-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--aivp-radius-xs);
+  color: var(--aivp-text-on-brand);
+  background: var(--aivp-brand);
+}

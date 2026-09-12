@@ -1,0 +1,116 @@
+/*
+ * AIVP design tokens — the single source of colour, type, radius and shadow.
+ *
+ * Nothing here is a value. This file declares the *contract*: the semantic
+ * names every component reads. The values live in the theme files, one per
+ * brand, and a theme is swapped by changing which set of values is applied —
+ * never by touching a component.
+ *
+ *   themes/aivp.css      the original palette (dark, green accent)
+ *   themes/pluranza.css  Pluranza brand (dark player, light dashboard)
+ *
+ * Scheme is chosen by attribute, so the player can stay dark inside a light
+ * page without either fighting the other:
+ *
+ *   [data-aivp-theme="pluranza"]                  picks the brand
+ *   [data-aivp-scheme="dark"|"light"]             picks the scheme
+ *
+ * The player surface is always dark: a light ground around video shifts the
+ * perceived contrast and colour of the frame itself. Brand reaches the player
+ * through accent, type, radius and tone — not through the background.
+ *
+ * Token naming is by function, never by colour. `--aivp-brand` is whatever
+ * the brand's interactive colour happens to be; if it turns orange tomorrow,
+ * the name still reads true.
+ */
+
+/*
+ * --- The contract -------------------------------------------------------
+ *
+ * Surfaces
+ *   --aivp-surface          the ground the player sits on
+ *   --aivp-surface-raised   panels, menus, sheets: one step toward the viewer
+ *   --aivp-surface-sunken   wells and inset tracks: one step away
+ *   --aivp-scrim            wash over the video frame (must carry alpha)
+ *   --aivp-plate            translucent plate for chrome over video
+ *
+ * Text
+ *   --aivp-text             primary reading colour
+ *   --aivp-text-muted       secondary: captions, hints, inactive labels
+ *   --aivp-text-on-brand    text placed on a filled brand element
+ *   --aivp-text-on-state    text placed on a filled practice element
+ *
+ * Brand
+ *   --aivp-brand            primary interactive: buttons, links, selection
+ *   --aivp-brand-strong     the accessible variant for its scheme
+ *   --aivp-brand-hover      hover for filled brand elements
+ *   --aivp-brand-soft       brand at low alpha: selected-row wash
+ *
+ * State — practice only. See the note below.
+ *   --aivp-state-practice        active loop, off-1x speed, practice badge
+ *   --aivp-state-practice-soft   the same at low alpha
+ *
+ * Structure
+ *   --aivp-border           hairline between surfaces
+ *   --aivp-border-strong    hairline that must be seen, not felt
+ *   --aivp-focus            focus ring, always the highest-contrast option
+ *
+ * Type
+ *   --aivp-font             brand family
+ *   --aivp-font-numeric     family for digits (must hold tabular figures)
+ *   --aivp-text-{2xs..2xl}  size scale, derived from the brand's real sizes
+ *
+ * Shape
+ *   --aivp-radius           default: panels and controls
+ *   --aivp-radius-sm        inputs, chips, small wells
+ *   --aivp-radius-lg        cards and sheets
+ *   --aivp-radius-pill      fully round: pill buttons
+ *   --aivp-shadow-{sm,md}   elevation, where colour alone won't separate
+ *
+ *
+ * --- Brand and state are different colours ------------------------------
+ *
+ * The practice indicator gets its own colour and does not share the brand's.
+ * If the brand colour is on every control, it stops marking anything, and
+ * this indicator exists precisely so a glance tells the user the player is
+ * not in normal mode. `--aivp-state-practice` is reserved for exactly three
+ * things: active loop, speed other than 1x, and the persistent practice
+ * badge. It appears nowhere else.
+ */
+
+/*
+ * Values that are structural rather than brand: a theme may override them,
+ * but it inherits a working set by not doing so.
+ */
+:where(html) {
+  /* Control sizing. Scaled up at the breakpoint below. */
+  --aivp-ctl-h: 38px;
+  --aivp-label: 0.74rem;
+  --aivp-caption: 0.6rem;
+
+  /*
+   * Layer scale, bottom to top. Named so a new element picks a meaning
+   * instead of guessing a number: before this the same values were reused by
+   * elements that do overlap (two different things at 4, three at 5).
+   * Gaps of 10 leave room to slot something in without renumbering.
+   */
+  --aivp-z-dim: 10; /* scrim over the paused frame */
+  --aivp-z-video-overlay: 20; /* centre play pulse, busy and error states */
+  --aivp-z-chrome: 30; /* title bar, practice row, centre controls */
+  --aivp-z-bar: 40; /* the control bar itself */
+  --aivp-z-bar-item: 50; /* pieces inside the bar that must clear its gradient */
+  --aivp-z-banner: 60; /* the stored-loop offer */
+  --aivp-z-menu: 70; /* dropdowns anchored to a control */
+  --aivp-z-panel: 80; /* loop and speed panels, they cover the bar */
+  --aivp-z-sheet: 90; /* the mobile sheet, above its own panels */
+  --aivp-z-tooltip: 100; /* the scrub guide, never occluded */
+}
+
+/* ponytail: one override scales every panel that reads these tokens */
+@media (min-width: 640px) and (min-height: 481px) {
+  :where(html) {
+    --aivp-ctl-h: 46px;
+    --aivp-label: 0.9rem;
+    --aivp-caption: 0.72rem;
+  }
+}

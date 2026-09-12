@@ -1,0 +1,255 @@
+/*
+ * Kept full width — it is a horizontal rail, so the stops need the room —
+ * but half as tall as it was: the old vertical padding turned a one-line
+ * control into a block covering a third of the video.
+ */
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--aivp-z-panel);
+  padding: 8px 20px 6px;
+  background: var(--aivp-plate-strong);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: panelIn 180ms ease-out;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.current {
+  margin: 0;
+  text-align: center;
+  font-size: var(--aivp-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aivp-text-muted);
+}
+
+/* current value: tinted by how far it is from 1x */
+.current b {
+  color: var(--aivp-speed, var(--aivp-state-practice));
+  font-variant-numeric: tabular-nums;
+  transition: color 220ms ease-out;
+}
+
+.track {
+  position: relative;
+  /* ponytail: 44px touch target, the rail itself stays 4px */
+  height: 36px;
+  margin: 0 10px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* the visible rail sits mid-height; stops are full-height hit targets */
+.track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: var(--aivp-radius-xs);
+  background: var(--aivp-track);
+}
+
+.fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: var(--aivp-radius-xs);
+  background: var(--aivp-speed, var(--aivp-text));
+  pointer-events: none;
+  /* ponytail: same curve as the thumb so rail and knob move as one */
+  transition:
+    width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms ease-out;
+}
+
+.tick {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 8px;
+  margin: -4px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--aivp-track);
+  pointer-events: none;
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--aivp-speed, var(--aivp-state-practice));
+  box-shadow: var(--aivp-shadow-sm);
+  pointer-events: none;
+  transition:
+    left 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms ease-out,
+    transform 120ms ease-out;
+}
+
+/* dragging follows the finger: no travel easing, only the colour keeps it */
+.dragging .thumb,
+.dragging .fill {
+  transition:
+    background-color 220ms ease-out,
+    transform 120ms ease-out;
+}
+
+.dragging .thumb {
+  transform: scale(1.25);
+}
+
+.track:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: -6px;
+  border-radius: var(--aivp-radius);
+}
+
+.marks {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.mark {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: var(--aivp-text-muted);
+  cursor: pointer;
+  font-size: var(--aivp-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.mark:hover {
+  color: var(--aivp-text);
+}
+
+/* selected option: green at 1x, warmer or cooler as it moves away */
+.mark[aria-pressed="true"] {
+  color: var(--aivp-speed, var(--aivp-state-practice));
+  font-weight: 700;
+}
+
+.mark {
+  transition: color 220ms ease-out;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--aivp-border);
+  padding-top: 6px;
+}
+
+/* the row holds a single button now, so it does not need full control height */
+.action {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: var(--aivp-text);
+  cursor: pointer;
+  font-size: var(--aivp-label);
+}
+
+.action:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+
+  .thumb,
+  .fill,
+  .mark,
+  .current b {
+    transition: none;
+  }
+}
+
+/* desktop: the panel has room, so the rail and its stops grow with it */
+@media (min-width: 640px) and (min-height: 481px) {
+  .panel {
+    /* half the height it had: the rail and its labels are all it needs, and
+       the old padding pushed it over a third of the frame */
+    padding: 10px 28px 8px;
+    gap: 6px;
+  }
+
+  .track {
+    height: 34px;
+    margin: 0 14px;
+  }
+
+  .track::before,
+  .fill {
+    height: 5px;
+    margin-top: -2.5px;
+  }
+
+  .thumb {
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+  }
+
+  .tick {
+    height: 10px;
+  }
+
+  .mark {
+    min-height: 40px;
+  }
+}
+
+/*
+ * The panel is a strip pinned to the bottom, but its close button belongs in
+ * the same corner as every other panel's. A fragment wrapper would not help:
+ * the button is positioned against the nearest positioned ancestor, so it is
+ * rendered outside .panel, directly over the player.
+ */
+.closeLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--aivp-z-panel);
+  pointer-events: none;
+}
+
+.closeLayer > * {
+  pointer-events: auto;
+}

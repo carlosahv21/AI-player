@@ -1,0 +1,155 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  /* ponytail: rail scrolls on its own, never the page */
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.arrow {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--aivp-text);
+  cursor: pointer;
+  flex: none;
+  opacity: 0.7;
+  filter: var(--aivp-icon-shadow);
+  /* ponytail: the slot stays reserved, only the glyph fades — no layout jump,
+     and the last card never slides under the clock */
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out;
+}
+
+.arrowOff {
+  opacity: 0;
+  transform: scale(0.7);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    transition: none;
+  }
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.arrow:hover {
+  opacity: 1;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--aivp-text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+
+.heading[aria-current="true"] {
+  color: var(--aivp-brand);
+}
+
+.num {
+  font-size: var(--aivp-text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.name {
+  font-size: var(--aivp-text-xs);
+  max-width: 15ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.step {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 120px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--aivp-border);
+  border-radius: var(--aivp-radius);
+  background: var(--aivp-plate-soft);
+  color: var(--aivp-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.step:hover {
+  border-color: var(--aivp-border-strong);
+}
+
+.step[aria-current="true"] {
+  border-color: var(--aivp-brand);
+  color: var(--aivp-brand);
+}
+
+.stepName {
+  font-size: var(--aivp-text-xs);
+  max-width: 13ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepTime {
+  font-size: var(--aivp-text-2xs);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}

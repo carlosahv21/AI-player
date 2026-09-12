@@ -1,0 +1,11 @@
+.time {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--aivp-text-base);
+  color: var(--aivp-text);
+  white-space: nowrap;
+  min-width: 7.5em;
+}
+
+.sep {
+  color: var(--aivp-text-muted);
+}

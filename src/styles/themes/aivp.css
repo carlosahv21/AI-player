@@ -1,0 +1,99 @@
+/*
+ * AIVP original theme — the provisional palette the player shipped with.
+ * Kept as a selectable theme so the pre-Pluranza look is not lost.
+ *
+ * Values are the ones that were hardcoded across the components before the
+ * token layer existed: surface #141416, accent green #4ade80, text #ededef.
+ *
+ * This theme is dark only. Asking it for the light scheme yields the dark
+ * values, which is the honest answer: it never had a light scheme.
+ */
+
+[data-aivp-theme="aivp"],
+[data-aivp-theme="aivp"] [data-aivp-scheme] {
+  /* Surfaces */
+  --aivp-surface: #141416;
+  --aivp-surface-raised: #1e1e22;
+  --aivp-surface-sunken: #0c0c0e;
+  --aivp-scrim: rgb(0 0 0 / 0.45);
+  --aivp-plate: rgb(12 12 14 / 0.62);
+
+  /* Text */
+  --aivp-text: #ededef;
+  --aivp-text-muted: #8a8a93;
+  --aivp-text-dim: #c9c9cf;
+  --aivp-text-on-brand: #141416;
+  --aivp-text-on-state: #141416;
+
+  /*
+   * Brand. In this theme brand and practice state were the same green — the
+   * ambiguity the Pluranza theme exists to fix. Preserved deliberately: this
+   * theme is a record of what shipped, not a corrected version of it.
+   */
+  --aivp-brand: #4ade80;
+  --aivp-brand-raw: #4ade80;
+  --aivp-brand-strong: #4ade80;
+  --aivp-brand-hover: #4ade80;
+  --aivp-brand-soft: rgb(74 222 128 / 0.16);
+  --aivp-brand-soft-hover: rgb(74 222 128 / 0.24);
+  --aivp-brand-soft-strong: rgb(74 222 128 / 0.32);
+
+  /* State */
+  --aivp-state-practice: #4ade80;
+  --aivp-state-practice-soft: rgb(74 222 128 / 0.14);
+
+  /* Speed rail: cool below 1x, warm above */
+  --aivp-speed-slow: #38bdf8;
+  --aivp-speed-normal: #4ade80;
+  --aivp-speed-fast: #fb923c;
+
+  /* Structure */
+  --aivp-border: rgb(237 237 239 / 0.12);
+  --aivp-border-strong: rgb(237 237 239 / 0.4);
+  --aivp-line: rgb(237 237 239 / 0.22);
+  --aivp-track: rgb(237 237 239 / 0.28);
+  --aivp-focus: #ededef;
+
+  /* Type */
+  --aivp-font: system-ui, sans-serif;
+  --aivp-font-numeric: system-ui, sans-serif;
+  --aivp-text-2xs: 0.58rem;
+  --aivp-text-xs: 0.68rem;
+  --aivp-text-sm: 0.82rem;
+  --aivp-text-base: 0.9rem;
+  --aivp-text-lg: 1rem;
+  --aivp-text-xl: 1.2rem;
+  --aivp-text-2xl: 1.25rem;
+  --aivp-weight-normal: 400;
+  --aivp-weight-medium: 500;
+  --aivp-weight-bold: 600;
+
+  /* Shape */
+  --aivp-radius-sm: 4px;
+  --aivp-radius: 7px;
+  --aivp-radius-lg: 12px;
+  --aivp-radius-pill: 999px;
+  --aivp-radius-xs: 2px;
+  --aivp-shadow-sm: 0 1px 4px rgb(0 0 0 / 0.5);
+  --aivp-shadow-md: 0 8px 24px rgb(0 0 0 / 0.5);
+
+  /* Plate scale: translucent grounds for chrome laid over the video */
+  --aivp-plate-strong: rgb(12 12 14 / 0.9);
+  --aivp-plate-soft: rgb(12 12 14 / 0.5);
+
+  /*
+   * Legibility over moving video. Not brand: text and icons sit directly on
+   * unknown frames, and without a shadow they vanish on a bright shot.
+   */
+  --aivp-text-shadow: 0 1px 4px rgb(0 0 0 / 0.9);
+  --aivp-icon-shadow: drop-shadow(0 1px 4px rgb(0 0 0 / 0.8));
+  --aivp-icon-shadow-lg: drop-shadow(0 2px 8px rgb(0 0 0 / 0.7));
+  --aivp-bar-gradient: linear-gradient(to top, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0));
+  --aivp-letterbox: #000;
+}
+
+@media (min-width: 640px) and (min-height: 481px) {
+  [data-aivp-theme="aivp"] {
+    --aivp-radius: 9px;
+  }
+}

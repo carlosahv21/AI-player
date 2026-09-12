@@ -1,0 +1,18 @@
+.thumb {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--aivp-radius-sm);
+  background: var(--aivp-surface-sunken);
+  border: 1px solid var(--aivp-border);
+  flex: none;
+}
+
+/* 1:1 tile, scaled by transform: the sprite sheet's own size is unknown */
+.tile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  background-repeat: no-repeat;
+}

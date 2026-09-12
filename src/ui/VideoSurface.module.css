@@ -1,0 +1,271 @@
+.surface {
+  position: relative;
+  cursor: pointer;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--aivp-surface);
+  overflow: hidden;
+}
+
+/* ponytail: in fullscreen the bar owns its height, surface takes the rest */
+:global(:fullscreen) .surface,
+:global(:-webkit-full-screen) .surface {
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: var(--aivp-surface);
+}
+
+.mirrored {
+  transform: scaleX(-1);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--aivp-surface);
+  color: var(--aivp-text);
+  text-align: center;
+}
+
+.overlayBusy {
+  background: var(--aivp-plate);
+}
+
+.message {
+  margin: 0;
+  max-width: 28rem;
+  font-size: var(--aivp-text-lg);
+}
+
+.retry {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: var(--aivp-surface-raised);
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: 2px;
+}
+
+.bigPlay {
+  position: absolute;
+  /* ponytail: transform-centred, inset+margin:auto drifts when the bar overlays */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* ponytail: above .dim, or the pause scrim washes the icon out */
+  z-index: var(--aivp-z-video-overlay);
+  width: 76px;
+  height: 76px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--aivp-text);
+  filter: var(--aivp-icon-shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  pointer-events: none;
+  animation: bigPlayIn 200ms ease-out backwards;
+}
+
+@keyframes bigPlayIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.surface:hover .bigPlay {
+  opacity: 0.85;
+}
+
+.surface:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: -2px;
+}
+
+.bigPlayIcon {
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+  /* ponytail: optical centring, the triangle reads left-heavy */
+  margin-left: 4px;
+}
+
+.pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--aivp-text);
+  filter: var(--aivp-icon-shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: var(--aivp-z-video-overlay);
+  animation: pulseOut 480ms ease-out forwards;
+}
+
+.pulseIcon {
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+}
+
+@keyframes pulseOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation-duration: 1ms;
+  }
+}
+
+.dim {
+  position: absolute;
+  inset: 0;
+  z-index: var(--aivp-z-dim);
+  background: var(--aivp-scrim);
+  pointer-events: none;
+  animation: dimIn 180ms ease-out;
+}
+
+@keyframes dimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Double-tap feedback: a brief wash on the side that was tapped, with the
+ * direction and the jump. Purely a confirmation — it never blocks the frame.
+ */
+.seekFlash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 33%;
+  z-index: var(--aivp-z-video-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  color: var(--aivp-text);
+  background: var(--aivp-scrim);
+  animation: seekFlashOut 480ms ease-out forwards;
+}
+
+.seekBack {
+  left: 0;
+  border-radius: 0 50% 50% 0 / 0 50% 50% 0;
+}
+
+.seekForward {
+  right: 0;
+  border-radius: 50% 0 0 50% / 50% 0 0 50%;
+}
+
+.seekIcon {
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+  filter: var(--aivp-icon-shadow);
+}
+
+.seekLabel {
+  font-size: var(--aivp-text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--aivp-text-shadow);
+}
+
+@keyframes seekFlashOut {
+  from {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* the hold indicator: practice state, so it takes the practice colour */
+.holdBadge {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--aivp-z-video-overlay);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--aivp-radius-pill);
+  background: var(--aivp-plate-strong);
+  border: 1px solid var(--aivp-state-practice);
+  color: var(--aivp-state-practice);
+  pointer-events: none;
+}
+
+.holdRate {
+  font-size: var(--aivp-text-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.holdHint {
+  font-size: var(--aivp-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--aivp-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seekFlash {
+    animation-duration: 1ms;
+  }
+}

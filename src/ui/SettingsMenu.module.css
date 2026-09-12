@@ -1,0 +1,149 @@
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.items {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+  /* ponytail: never taller than the frame, scroll the rest */
+  max-height: min(74vh, 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 2px;
+}
+
+.items::-webkit-scrollbar {
+  display: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px) scale(0.9);
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out;
+}
+
+.itemsOpen {
+  pointer-events: auto;
+}
+
+.itemsOpen .row {
+  opacity: 1;
+  transform: none;
+}
+
+/* label sits beside the button, small and quiet */
+.caption {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: var(--aivp-text);
+  text-shadow: var(--aivp-text-shadow);
+  font-size: var(--aivp-text-2xs);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.caption b {
+  font-size: var(--aivp-caption);
+  color: var(--aivp-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.item,
+.fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  flex: none;
+  padding: 0;
+}
+
+.item {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--aivp-brand);
+  background: transparent;
+  color: var(--aivp-brand);
+  backdrop-filter: blur(3px);
+}
+
+.item:hover {
+  background: var(--aivp-brand-soft);
+}
+
+.item[aria-pressed="true"] {
+  background: var(--aivp-brand-soft-hover);
+}
+
+.item svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fab {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  color: var(--aivp-text);
+  filter: var(--aivp-icon-shadow);
+  transition: transform 180ms ease-out;
+}
+
+.fab:hover {
+  color: var(--aivp-brand);
+}
+
+.fabOpen {
+  transform: rotate(90deg);
+}
+
+.fab svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fab:focus-visible,
+.item:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .fab {
+    transition: none;
+  }
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI video player — debug</title>
+    <style>
+      body {
+        margin: 0;
+        background: #111;
+        color: #ededef;
+        font-family: system-ui, sans-serif;
+      }
+      /* ponytail: cap the player so surface + bar fit the viewport */
+      #root {
+        max-width: min(100vw, calc(100vh * 16 / 9));
+        margin: 0 auto;
+      }
+
+      /*
+       * Dev tools park in the corner and stay out of the way. The bench is for
+       * watching video, so the switch must not take a strip off the top: it
+       * collapses to a dot, opens on demand, and hides itself whenever the
+       * player goes fullscreen.
+       */
+      /* bottom-left: the player's own panels put their close button in the
+         top-right corner, and two X-ish controls there read as one */
+      .bench-tools {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        z-index: 2147483001; /* over .theater, which sits at 2147483000 */
+        font-size: 0.78rem;
+        display: flex;
+        align-items: flex-end;
+        flex-direction: row-reverse;
+        gap: 6px;
+      }
+      .bench-tools[hidden] {
+        display: none;
+      }
+
+      .bench-toggle {
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #ffffff2e;
+        background: #000000a6;
+        color: #ededef;
+        cursor: pointer;
+        font: inherit;
+        line-height: 1;
+        opacity: 0.35;
+        transition: opacity 140ms;
+      }
+      .bench-tools:hover .bench-toggle,
+      .bench-toggle:focus-visible,
+      .bench-toggle[aria-expanded="true"] {
+        opacity: 1;
+      }
+
+      .bench-panel {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 6px;
+        border-radius: 10px;
+        background: #000000cc;
+        border: 1px solid #ffffff24;
+        backdrop-filter: blur(6px);
+      }
+      .bench-panel[hidden] {
+        display: none;
+      }
+      .bench-panel button {
+        font: inherit;
+        padding: 5px 12px;
+        cursor: pointer;
+        border-radius: 100px;
+        border: 1px solid #ffffff40;
+        background: transparent;
+        color: inherit;
+        white-space: nowrap;
+      }
+      .bench-panel button[aria-pressed="true"] {
+        background: #039fd9;
+        border-color: #039fd9;
+        color: #fff;
+      }
+      .bench-panel a {
+        color: #039fd9;
+        white-space: nowrap;
+        padding: 0 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

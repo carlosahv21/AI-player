@@ -1,0 +1,72 @@
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--aivp-z-chrome);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+/* ponytail: no plates, the icons sit straight on the frame */
+.side,
+.play {
+  border: 0;
+  background: transparent;
+  color: var(--aivp-text);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: var(--aivp-icon-shadow);
+}
+
+.side {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+.side svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+  font-size: var(--aivp-text-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.play {
+  width: 76px;
+  height: 76px;
+}
+
+/* ponytail: clearly the primary action next to the 32px seek glyphs */
+.playIcon {
+  width: 58px;
+  height: 58px;
+  fill: currentColor;
+}
+
+.side:focus-visible,
+.play:focus-visible {
+  outline: 2px solid var(--aivp-text);
+  outline-offset: 2px;
+  border-radius: var(--aivp-radius);
+}

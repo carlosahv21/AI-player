@@ -1,0 +1,113 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--aivp-border);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.btn[aria-pressed="true"] {
+  color: var(--aivp-state-practice);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph {
+  font-size: var(--aivp-text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.nudge {
+  display: flex;
+  gap: 2px;
+}
+
+.nudgeBtn {
+  min-width: 34px;
+  min-height: 34px;
+  border: 0;
+  border-radius: var(--aivp-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--aivp-text-xs);
+}
+
+.nudgeBtn:hover {
+  background: var(--aivp-border);
+}
+
+/* desktop: icon over a NAME / value caption, like a hardware panel */
+.labelled {
+  gap: 8px;
+}
+
+.labelled .btn {
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-width: 112px;
+  min-height: 80px;
+  padding: 12px 14px;
+  border-radius: var(--aivp-radius-lg);
+}
+
+.labelled .icon {
+  width: 30px;
+  height: 30px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.2;
+  font-size: var(--aivp-text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aivp-text-muted);
+  white-space: nowrap;
+}
+
+.label b {
+  font-size: var(--aivp-text-sm);
+  font-weight: 700;
+  color: var(--aivp-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn[aria-pressed="true"] .label b {
+  color: var(--aivp-state-practice);
+}

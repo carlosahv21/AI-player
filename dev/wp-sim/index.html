@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simulación WordPress — temas</title>
+    <style>
+      body { margin:0; padding:20px; background:#fff; color:#151823;
+             font-family: system-ui, sans-serif; }
+      h2 { font-size: 15px; margin: 24px 0 6px; }
+      code { background:#eee; padding:1px 5px; border-radius:4px; font-size:12px; }
+      .aivp-player { max-width: 640px; }
+    </style>
+  </head>
+  <body>
+    <h1 style="font-size:18px">Cómo llega el tema desde WordPress</h1>
+
+    <h2>1. Sin atributo → usa <code>AIVP_CONFIG.theme</code> (ajuste del sitio)</h2>
+    <div class="aivp-player" data-aivp-video="1"></div>
+
+    <h2>2. Con <code>data-aivp-theme="aivp"</code> → gana sobre el ajuste del sitio</h2>
+    <div class="aivp-player" data-aivp-video="1" data-aivp-theme="aivp"></div>
+
+    <h2>3. Valor inválido → cae al tema por defecto, no se queda sin pintar</h2>
+    <div class="aivp-player" data-aivp-video="1" data-aivp-theme="no-existe"></div>
+
+    <script type="module" src="./wp-sim.tsx"></script>
+  </body>
+</html>
