@@ -160,6 +160,80 @@ export function coverageGaps(
   return gaps;
 }
 
+/**
+ * Smallest hole that gets its own entry in `railSegments`.
+ *
+ * Same constant `coverageGaps()` uses to decide a hole is worth reporting:
+ * what is too small to warn about is too small to draw.
+ */
+const MIN_GAP_SECONDS = 0.5;
+
+/** One box on the rail: a real section, or the empty stretch between two. */
+export interface RailSegment {
+  id: string;
+  name: string;
+  start: number;
+  end: number;
+  /** True for the stretch no section describes. Unnamed, unlisted, seekable. */
+  gap: boolean;
+}
+
+/**
+ * Sections plus one entry per uncovered stretch.
+ *
+ * The progress bar no longer lays these out as flex boxes — it is one
+ * rectangle on `time / duration`. This list is still the model of what the
+ * sections cover and what they leave empty, and `coverageGaps()` is what the
+ * bar paints for the empty stretches.
+ */
+export function railSegments(
+  sections: readonly Section[],
+  duration: number,
+): RailSegment[] {
+  const named = [...sections]
+    .filter((s) => s.end > s.start)
+    .sort((a, b) => a.start - b.start);
+
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return named.map((s) => ({ ...s, gap: false }));
+  }
+  if (named.length === 0) {
+    return [{ id: "gap:0", name: "", start: 0, end: duration, gap: true }];
+  }
+
+  const out: RailSegment[] = [];
+  let cursor = 0;
+
+  const addGap = (start: number, end: number) => {
+    if (end - start >= MIN_GAP_SECONDS) {
+      out.push({ id: `gap:${start}`, name: "", start, end, gap: true });
+      return;
+    }
+    // too thin to be its own segment: hand the time to the previous segment so
+    // the spans still total the duration, which is what keeps the axis honest
+    const previous = out[out.length - 1];
+    if (previous && end > previous.end) previous.end = end;
+  };
+
+  for (const section of named) {
+    addGap(cursor, Math.min(section.start, duration));
+    const end = Math.min(section.end, duration);
+    if (end > section.start) {
+      out.push({ ...section, end, gap: false });
+    }
+    cursor = Math.max(cursor, end);
+  }
+  addGap(cursor, duration);
+
+  // a leading sliver had no previous segment to absorb it; pull the first
+  // segment back to zero so the rail still starts at the origin
+  if (out.length > 0 && out[0].start > 0 && out[0].start < MIN_GAP_SECONDS) {
+    out[0] = { ...out[0], start: 0 };
+  }
+
+  return out;
+}
+
 const t = (n: number) => `${n.toFixed(2)}s`;
 
 /**

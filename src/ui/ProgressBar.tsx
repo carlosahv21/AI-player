@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { clamp } from "../core/store";
+import { coverageGaps } from "../core/duration";
 import type { Section } from "../core/types";
 import { formatTime } from "./formatTime";
-import { HeatmapProgress } from "./HeatmapProgress";
+import {
+  axisAt,
+  gapMask,
+  HeatmapProgress,
+  sectionCuts,
+} from "./HeatmapProgress";
 import { usePlayerState } from "./hooks/usePlayerState";
 import { usePreviewSprite } from "./hooks/usePreviewSprite";
 import { PreviewThumb } from "./PreviewThumb";
@@ -48,8 +54,6 @@ export function ProgressBar({
   const [drag, setDrag] = useState<number | null>(null);
   const dragged = useRef(false);
   const nudgeLoop = usePlayerState((s) => s.nudgeLoop);
-  // which segment the pointer is over, so only that one grows
-  const [hot, setHot] = useState<string | null>(null);
   // 0..1 position of the pointer along the bar, for the hover guide
   const [guide, setGuide] = useState<number | null>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
@@ -80,21 +84,20 @@ export function ProgressBar({
     const overRight = Math.max(0, halfBar - (1 - guide) * 100);
     return -50 + (overLeft - overRight) * (barW / labelW);
   })();
+  // No fallback to the last section: over a hole there is genuinely no section
+  // to name, and labelling it with a neighbour's name claimed the hole was
+  // part of a section the user would then not find there.
   const guideSection =
     guideTime === null
       ? null
       : (sections.find((x) => x.start <= guideTime && guideTime < x.end) ??
-        sections[sections.length - 1] ??
         null);
 
   const shown = drag ?? currentTime;
-
-  // a payload with no sections still needs one full-width segment
-  const segments =
-    sections.length > 0
-      ? sections
-      : [{ id: "all", name: "", start: 0, end: duration || 1 }];
   const max = duration > 0 ? duration : 1;
+  const at = (t: number) => axisAt(t, max);
+  const mask = gapMask(sectionCuts(sections, max));
+  const holes = coverageGaps(sections, max);
 
   const commit = (time: number) => {
     seek(time);
@@ -158,66 +161,48 @@ export function ProgressBar({
       ref={wrapRef}
     >
       {heatmap ? <HeatmapProgress points={heatmap} /> : null}
-      {/* ponytail: one segment per section, YouTube-style; a single bar when
-          the payload has no sections. Each grows on its own hover. */}
       <div className={styles.track}>
-        {segments.map((seg) => {
-          const span = seg.end - seg.start;
-          const local = (t: number) =>
-            `${Math.min(100, Math.max(0, ((t - seg.start) / span) * 100))}%`;
-          return (
-            <div
-              key={seg.id}
-              className={`${styles.segment} ${hot === seg.id ? styles.hot : ""}`}
-              style={{ flexGrow: span }}
-            >
-              <span className={styles.rail} />
-              <span className={styles.buffered} style={{ width: local(buffered) }} />
-              {/* ponytail: local() already clamps to this segment, so the fill
-                  cannot bleed past it and .track's 2px gap keeps every section
-                  division visible without drawing a single divider */}
-              <span className={styles.played} style={{ width: local(shown) }} />
-              {/*
-               * The playhead rides the segment that holds the current time,
-               * pinned to the fill's own right edge.
-               *
-               * It used to sit in .wrap and position itself with a calc() that
-               * reproduced flex's arithmetic. The maths agreed, the pixels did
-               * not: flex resolves each segment's box with its own subpixel
-               * rounding, so the needle landed a fraction off the blue edge.
-               * Sharing the parent — and the `left: local(shown)` the fill's
-               * width already uses — makes the two exact by construction
-               * rather than by calculation.
-               */}
-              {shown >= seg.start &&
-              (shown < seg.end || seg === segments[segments.length - 1]) ? (
-                <span
-                  className={styles.playhead}
-                  style={{ left: local(shown) }}
-                  aria-hidden="true"
-                />
-              ) : null}
-              {loop ? (
-                <span
-                  className={styles.loop}
-                  style={{
-                    left: local(loop.start),
-                    right: `calc(100% - ${local(loop.end)})`,
-                  }}
-                />
-              ) : null}
-              {loopDraft !== null ? (
-                <span
-                  className={styles.draft}
-                  style={{
-                    left: local(Math.min(loopDraft, shown)),
-                    right: `calc(100% - ${local(Math.max(loopDraft, shown))})`,
-                  }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        <div
+          className={styles.bar}
+          style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
+        >
+          <span className={styles.rail} />
+          <span className={styles.buffered} style={{ width: at(buffered) }} />
+          <span className={styles.played} style={{ width: at(shown) }} />
+          {holes.map((gap) => (
+            <span
+              key={`gap:${gap.start}`}
+              className={styles.hole}
+              style={{
+                left: at(gap.start),
+                width: `${((gap.end - gap.start) / max) * 100}%`,
+              }}
+            />
+          ))}
+          {loop ? (
+            <span
+              className={styles.loop}
+              style={{
+                left: at(loop.start),
+                right: `calc(100% - ${at(loop.end)})`,
+              }}
+            />
+          ) : null}
+          {loopDraft !== null ? (
+            <span
+              className={styles.draft}
+              style={{
+                left: at(Math.min(loopDraft, shown)),
+                right: `calc(100% - ${at(Math.max(loopDraft, shown))})`,
+              }}
+            />
+          ) : null}
+        </div>
+        <span
+          className={styles.playhead}
+          style={{ left: at(shown) }}
+          aria-hidden="true"
+        />
       </div>
       {guide !== null ? (
         <div
@@ -321,10 +306,6 @@ export function ProgressBar({
                 width: `${((section.end - section.start) / max) * 100}%`,
               }}
               aria-label={`Ir a ${section.name}`}
-              onPointerEnter={() => setHot(section.id)}
-              onPointerLeave={() => setHot(null)}
-              onFocus={() => setHot(section.id)}
-              onBlur={() => setHot(null)}
               // Mouse clicks are handled by the bar itself (seek to the exact
               // point). This stays for keyboard: Enter/Space on a focused
               // section jumps to its start, which is what a section button

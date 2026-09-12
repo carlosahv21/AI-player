@@ -178,6 +178,7 @@
 .repeat {
   min-width: 40px;
   min-height: var(--aivp-ctl-h);
+  padding: 0;
   border: 1px solid var(--aivp-line);
   border-radius: var(--aivp-radius);
   background: var(--aivp-plate);

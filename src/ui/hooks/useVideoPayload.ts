@@ -25,9 +25,16 @@ const FETCH_ERROR = {
  * counts sessions per bucket, and what the curve shows is relative interest,
  * not an absolute session count.
  *
- * Bad samples are dropped individually and logged, never in silence. Only when
+ * Bad samples are repaired in place and logged, never in silence. Only when
  * more than half the array is unusable is the whole curve discarded — at that
  * point it would be a shape drawn from a minority of the measurements.
+ *
+ * Repaired in place, NOT filtered out: a sample's X coordinate is its index
+ * (`heatArea` spreads the array evenly across the width), so removing one
+ * shifts every sample after it to the left. Measured on a 101-bucket curve
+ * with ten bad values at the head: peaks authored at 25/50/75% were drawn at
+ * 16.7/44.4/72.2%. The array's LENGTH is what anchors the time axis, so it is
+ * preserved and only the values are mended.
  */
 export function sanitizeHeatmap(payload: VideoPayload): VideoPayload {
   const raw = payload.heatmap;
@@ -44,18 +51,18 @@ export function sanitizeHeatmap(payload: VideoPayload): VideoPayload {
     if (typeof v === "string" && v.trim() !== "") return Number(v);
     return NaN;
   });
-  const nums = parsed.filter(Number.isFinite);
-  const dropped = parsed.length - nums.length;
+  const valid = parsed.filter(Number.isFinite);
+  const dropped = parsed.length - valid.length;
 
   // Partial damage keeps the good samples. One bad value used to void the
   // whole curve with nothing logged — the worst of both, since the data was
   // gone AND nobody knew why. The curve is relative interest, so losing a few
   // buckets skews its shape slightly; losing all of it hides a real signal.
-  if (dropped > 0 && nums.length >= 2 && dropped <= parsed.length / 2) {
+  if (dropped > 0 && valid.length >= 2 && dropped <= parsed.length / 2) {
     console.warn(
       `[aivp] video ${payload.id}: ${dropped} de ${parsed.length} muestras del ` +
-        `heatmap no son números finitos y se descartaron. La curva se dibuja ` +
-        `con las ${nums.length} restantes; revisa el origen de los datos.`,
+        `heatmap no son números finitos. Se interpolan en su posición para no ` +
+        `desplazar la curva; revisa el origen de los datos.`,
     );
   }
 
@@ -72,21 +79,54 @@ export function sanitizeHeatmap(payload: VideoPayload): VideoPayload {
 
   // fewer than two points cannot describe a curve; drop the field entirely so
   // the component's own guard skips rendering instead of drawing a flat line
-  if (nums.length < 2) {
+  if (valid.length < 2) {
     if (parsed.length >= 2) {
       console.error(
-        `[aivp] video ${payload.id}: el heatmap queda con ${nums.length} muestra(s) ` +
+        `[aivp] video ${payload.id}: el heatmap queda con ${valid.length} muestra(s) ` +
           `válida(s), insuficientes para una curva. Se descarta.`,
       );
     }
     return { ...payload, heatmap: null };
   }
 
-  const peak = Math.max(...nums);
+  const mended = mendInPlace(parsed);
+  const peak = Math.max(...mended);
   const heatmap =
-    peak > 0 ? nums.map((n) => Math.max(0, n) / peak) : nums.map(() => 0);
+    peak > 0 ? mended.map((n) => Math.max(0, n) / peak) : mended.map(() => 0);
 
   return { ...payload, heatmap };
+}
+
+/**
+ * Fills each non-finite slot from its nearest good neighbours, keeping the
+ * array's length — and therefore every sample's position on the time axis.
+ *
+ * A run of holes is bridged linearly between the values on either side, and a
+ * run at either end takes the nearest good value flat. Interpolating rather
+ * than zeroing because a zero is a claim — "nobody watched this part" — that
+ * a missing sample does not support; carrying the neighbours across says only
+ * "no measurement here", which is what actually happened.
+ */
+function mendInPlace(parsed: readonly number[]): number[] {
+  const out = [...parsed];
+  for (let i = 0; i < out.length; i += 1) {
+    if (Number.isFinite(out[i])) continue;
+
+    let end = i;
+    while (end < out.length && !Number.isFinite(out[end])) end += 1;
+
+    const before = i > 0 ? out[i - 1] : undefined;
+    const after = end < out.length ? out[end] : undefined;
+    const span = end - i + 1;
+
+    for (let j = i; j < end; j += 1) {
+      if (before === undefined) out[j] = after!;
+      else if (after === undefined) out[j] = before;
+      else out[j] = before + ((after - before) * (j - i + 1)) / span;
+    }
+    i = end - 1;
+  }
+  return out;
 }
 
 /**

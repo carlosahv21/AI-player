@@ -16,7 +16,6 @@
   height: 12px;
   display: flex;
   align-items: center;
-  gap: 2px;
   /*
    * Clips the X axis only. The playhead is pulled 2px left of its position so
    * its right edge sits on the fill's edge; at the start of the video that
@@ -24,44 +23,28 @@
    * which makes the curve beside it read as shifted right.
    *
    * The vertical bounds are deliberately huge: the heatmap crests and the
-   * needle both rise far above this 12px box, and clipping them is what
-   * `overflow: visible` on .segment exists to prevent.
+   * needle both rise far above this 12px box.
    */
   clip-path: inset(-100px 0 -100px 0);
 }
 
-/* ponytail: each section is its own bar; only the hovered one grows, the way
-   YouTube does chapters. The 12px track holds the tallest state, so growing
-   changes no layout. The heatmap curve rides above the track's box — .wrap's
-   44px min-height leaves room for it, so nothing needs to reserve space.
-   The played fill lives INSIDE each segment, so the 2px flex gap between
-   segments stays unpainted and the section divisions read at any progress. */
-/* ponytail: align-self:center stops the flex row stretching the segment,
-   so its own height (and the taller .hot) actually applies */
-.segment {
+/*
+ * One rectangle. The 12px track holds the tallest hover state, so growing
+ * changes no layout. Section joints are a 2px mask on this box — marks on
+ * the axis, not gaps that steal width from it.
+ */
+.bar {
   position: relative;
+  width: 100%;
   height: 4px;
-  align-self: center;
-  min-width: 0;
-  flex-basis: 0;
   border-radius: var(--aivp-radius-xs);
-  /* the heatmap crests rise above the segment's box on purpose */
   overflow: visible;
   transition:
     height 160ms cubic-bezier(0.2, 0.9, 0.3, 1),
     border-radius 160ms ease-out;
 }
 
-/* ponytail: only the pointed/focused segment grows — a :focus-within rule
-   here would grow every segment at once */
-.hot {
-  height: 9px;
-  border-radius: var(--aivp-radius-xs);
-}
-
-/* ponytail: with no sections there is no hit layer, so hovering the whole
-   wrap is what grows the single segment */
-.wrap:hover .segment:only-child {
+.wrap:hover .bar {
   height: 8px;
 }
 
@@ -69,7 +52,8 @@
 .buffered,
 .played,
 .loop,
-.draft {
+.draft,
+.hole {
   position: absolute;
   top: 0;
   left: 0;
@@ -92,11 +76,10 @@
  * took that band over.
  *
  * One flat brand blue, no gradient: the heatmap curve above already carries
- * the gradient, and a second one here read as two unrelated blue shapes. Flat
- * also means a section filled long ago looks exactly like one just finished.
+ * the gradient, and a second one here read as two unrelated blue shapes.
  *
- * It inherits the segment's border-radius and grows with it on hover, since
- * height is 100% of a box that animates 4px -> 9px.
+ * It inherits the bar's border-radius and grows with it on hover, since
+ * height is 100% of a box that animates 4px -> 8px.
  */
 .played {
   width: 0;
@@ -104,43 +87,32 @@
   border-radius: inherit;
 }
 
+/* Uncovered stretch: still video, just not a named section. */
+.hole {
+  background: var(--aivp-surface);
+  opacity: 0.45;
+}
+
 /*
  * The playhead: the one signal that survives a valley in the heatmap curve.
  * Where the curve sinks to its baseline the clip edge is 1-2px tall and reads
  * as nothing, so this needle carries the exact position instead.
  *
- * It is a child of .segment, not of .wrap, and takes the same `local(shown)`
- * that sizes .played. That is the whole point: flex resolves each segment's
- * box with its own subpixel rounding, so a needle positioned in .wrap by a
- * calc() that reproduced flex's arithmetic agreed on paper and missed by a
- * fraction on screen. Sharing the parent and the expression makes the needle
- * and the fill's right edge the same pixel by construction.
+ * It is a child of .track and takes the same `axisAt(shown)` that sizes
+ * .played. One rectangle, one percentage, so the needle and the fill's right
+ * edge are the same pixel by construction.
  *
  * It spans the heatmap's band AND the rail in one unbroken line, so the eye
  * never has to bridge a gap between the two.
  *
- * The two axes come from DIFFERENT boxes on purpose:
- *
- *   X — from the segment, which is the whole reason it lives here.
- *   Y — from .wrap, via a centre anchor the segment's height cannot move.
- *
- * Anchoring Y to the segment too was a bug: .segment animates 4px -> 9px on
- * hover, so a needle pinned to its underside slid 2.5px up (over 160ms, with
- * the transition) while the curve, which lives in .wrap, stayed put. The one
- * element meant to tie the two together was the one that drifted between them.
+ * Y is pinned to .track's centre — a 12px box that never changes height —
+ * then pushed down to the resting 4px rail's underside. .bar growing on hover
+ * cannot move that line, and neither can the curve, which lives in .wrap.
  */
 .playhead {
   position: absolute;
-  /*
-   * Pinned to the segment's centre — the only line that stays put whatever
-   * height the segment animates to — then pushed down to the rail's underside
-   * by half the 4px rail. The hovered segment grows to 9px, but only that one
-   * does, and sizing for the tallest state would hang the needle under every
-   * other segment.
-   */
   bottom: 50%;
-  /* half the 4px rail: the needle's foot rests on the rail's underside, and
-     the segment growing to 9px on hover cannot move a centre-anchored edge */
+  /* half the 4px rail: the needle's foot rests on the rail's underside */
   margin-bottom: -2px;
   /* the 2px below centre, the 5px clearance and the curve's 17px band, so the
      needle keeps reaching the crest if either offset changes */
@@ -183,6 +155,11 @@
   z-index: 3;
   padding: 0;
   border: 0;
+  /* Astra's inline CSS rounds every button, and the root reset's own
+     border-radius sits at zero specificity so it loses to it. Stated here,
+     where a component class outranks the theme: the hit is an invisible
+     rectangle over the rail and a rounded one clips its own corners. */
+  border-radius: 0;
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
@@ -258,7 +235,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .segment,
+  .bar,
   .hitName {
     transition: none;
   }

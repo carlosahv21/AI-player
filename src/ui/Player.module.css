@@ -24,48 +24,161 @@
 }
 
 /*
- * ponytail: themes style bare `button` and `input[type="range"]` (Astra paints
- * a blue pill with its own padding, and a fat blue slider).
+ * THE RESET, AND THE SPECIFICITY STRATEGY BEHIND IT
  *
- * The whole selector sits inside :where() so the reset has zero specificity:
- * it beats the theme's element selectors by load order, while every component
- * class still wins over it. Note `.root :where(button)` would NOT work — the
- * ancestor class still counts, tying with the components' own single-class
- * rules and winning on order, which flattened their padding.
+ * Commercial themes style bare elements hard. Measured on Astra + Elementor:
+ * `.ast-button, .button, button, input…` painted the panel's close button
+ * `background: #e6e6e6`, `color: #fff`, `border-radius: 2px`, and Astra's
+ * INLINE `<style>` added `background-color: var(--ast-global-color-0)` with
+ * `padding: 15px 30px` and `line-height: 1em`. The button rendered as a solid
+ * 62x40 slab with the icon lost inside it.
+ *
+ * The reset has to win against the theme but LOSE against this player's own
+ * component classes, which are plain `.close`-style selectors at (0,1,0).
+ * That upper bound is the whole difficulty, and it is what splits the reset
+ * in two. Which half a property belongs to IS the strategy, and it is the
+ * only one in use here — there is no !important in this file.
+ *
+ * Ruled out first, each measured against the live site rather than reasoned
+ * about:
+ *
+ *   - `@layer`. The textbook answer, and wrong here: an UNLAYERED rule beats
+ *     every layered rule regardless of specificity, and Astra's CSS is
+ *     unlayered. With the reset in a layer the computed padding stayed
+ *     Astra's 15px/30px. Layering the components too does not help — the
+ *     theme then beats them as well.
+ *   - `!important` inside a layer. Beats the theme, but also beats the
+ *     components, which would each need !important back. That is the
+ *     scattered-!important arms race this is meant to avoid.
+ *   - One strong reset at `.root.root` (0,2,1). Beats the theme, but flattens
+ *     `.close`'s own background and border too: measured, the button went
+ *     transparent in BOTH environments.
  */
-:where(.root button) {
-  margin: 0;
-  padding: 0;
+
+/*
+ * HALF 1 — properties no component paints, so the reset can win outright.
+ *
+ * Specificity (0,1,1), above Astra's `button` (0,0,1) and its inline rules.
+ * Nothing in src/ui/*.module.css sets any of these on a control, so winning
+ * costs nothing. `min-height` and `text-transform` belong here precisely
+ * because page-builder themes love them and the player never sets them on a
+ * button: they are what knocked control heights out of alignment and
+ * uppercased every label.
+ *
+ * These are the ones ORDER alone could not defend, because Astra's inline
+ * <style> is emitted after the plugin's stylesheet. That is the actual bug —
+ * the old reset put every property in Half 2, where a zero-specificity rule
+ * had nothing left to win with.
+ */
+.root button,
+.root a,
+.root input,
+.root select {
+  max-width: none;
+  float: none;
+  text-transform: none;
+  text-decoration: none;
+  text-shadow: none;
+  letter-spacing: normal;
   font-family: inherit;
   font-size: inherit;
-  color: inherit;
+  font-weight: inherit;
   line-height: inherit;
-  background: transparent;
-  background-image: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  text-transform: none;
-  letter-spacing: normal;
-  text-decoration: none;
   -webkit-appearance: none;
   appearance: none;
+  /*
+   * box-shadow stays here: Astra sets it from its inline <style>, after the
+   * plugin sheet, so Half 2 could not defend it. Components that need a
+   * shadow use `.class:focus` (0,2,0) and still win.
+   *
+   * padding, margin, min-height and min-width do NOT. Half 1 used to zero
+   * them at (0,1,1), which flattened every control that painted those on
+   * its own class — section rows, repeat pills, the labelled practice
+   * buttons. Those live in Half 2 so `.section { padding }` wins again.
+   */
+  box-shadow: none;
 }
 
 /*
- * Hover/focus can't sit fully inside :where(): Astra's inline CSS repaints
- * `button:hover, button:focus` blue at (0,1,1), so a zero-specificity rule
- * loses. Wrapping only the ancestor lands this at (0,1,1) too — it wins on
- * load order, while the components' own `.class:hover` rules (0,2,0) still
- * outrank it.
+ * HALF 2 — properties the components DO paint: background, border, radius,
+ * colour.
+ *
+ * Zero specificity on purpose. `:where()` keeps this at (0,0,0) so every
+ * component class outranks it, which is the upper bound described above. It
+ * still beats the theme's own `button` rules on ORDER, since the plugin's
+ * stylesheet is enqueued after the theme's — the one thing the original reset
+ * got right, kept as it was.
+ */
+:where(.root button),
+:where(.root a),
+:where(.root input),
+:where(.root select) {
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  background-image: none;
+  color: inherit;
+  transition: none;
+  outline: none;
+}
+
+/*
+ * Hover/focus/active: Astra repaints all three, and a reset covering only the
+ * resting state lets the theme back in on the first pointer.
+ *
+ * Only the ancestor is wrapped, landing this at (0,1,1) so it beats the
+ * theme's `button:hover` (0,1,1) on order. A component's own `.close:hover`
+ * is (0,2,0) and still outranks it.
  */
 .root :where(button):hover,
 .root :where(button):focus,
-.root :where(button):active {
+.root :where(button):active,
+.root :where(a):hover,
+.root :where(a):focus,
+.root :where(a):active {
   background: transparent;
   background-image: none;
   box-shadow: none;
   color: inherit;
+  text-decoration: none;
+}
+
+/*
+ * Icons stop depending on a colour the theme controls.
+ *
+ * The components paint their glyphs with `currentColor`, which is the right
+ * thing — it follows hover and disabled states for free. The danger is not
+ * currentColor itself but WHERE the colour resolves from: Astra set
+ * `color: #fff` on every button, so `currentColor` became white and the icon
+ * vanished into a light slab. The button reset above puts `color` back to
+ * `inherit` (which reaches `.root`'s own `--aivp-text`), and this pins that
+ * same token on any svg that inherits nothing useful.
+ *
+ * No width/height here: the glyphs are sized by their own component classes
+ * and by their `viewBox`, and resetting either collapses them.
+ */
+.root svg {
+  display: block;
+  max-width: none;
+  max-height: none;
+  vertical-align: middle;
+  color: var(--aivp-text);
+}
+
+/* Themes give lists bullets, padding and margins; the player's menus are
+   lists, and every one of those shows up as a stray dot or an indent. */
+.root ul,
+.root ol,
+.root li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: none;
+  text-indent: 0;
 }
 
 :where(.root input[type="range"]) {
@@ -78,6 +191,7 @@
   appearance: none;
 }
 
+/* The player's own button behaviour, at (0,1,1) — above Half 2's zero. */
 .root button:focus {
   outline: none;
 }
@@ -92,8 +206,6 @@
  * a 1px nudge rather than a colour change. On a bar sitting over video, a
  * colour shift on press competes with the frame underneath, while the
  * displacement reads just as clearly and adds no new hue.
- *
- * Sits after the :where() reset above, which clears the theme's own :active.
  */
 .root button:not(:disabled):active {
   transform: translateY(1px);

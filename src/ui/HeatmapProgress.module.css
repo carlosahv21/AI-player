@@ -5,8 +5,8 @@
  *
  * `bottom` is the anchor, not `top`: the curve's baseline rests on the rail's
  * top edge and the crests grow upward, away from it. Anchoring by `top` would
- * push the whole shape down through the rail when a segment grows on hover
- * (4px -> 9px) — the same reason .played anchored to `bottom`.
+ * push the whole shape down through the rail when the bar grows on hover
+ * (4px -> 8px) — the same reason .played anchored to `bottom`.
  *
  * Stacking: .track carries z-index 1, so the rail and buffered bar draw over
  * this curve's baseline where the two meet.
@@ -15,7 +15,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  /* half the tallest segment (9px) clears the rail at every hover state */
+  /* half the tallest bar (8px) plus a px so the crest never meets the rail */
   bottom: calc(50% + 5px);
   /* .wrap is 44px with the rail centred at 22px, so 17px is the room above
      it — a taller curve would spill past the wrap over the title row */
@@ -34,5 +34,5 @@
   fill: url(#aivp-heat);
 }
 
-/* The playhead lives in ProgressBar.module.css: it is a child of .segment, so
+/* The playhead lives in ProgressBar.module.css: it is a child of .track, so
    its geometry belongs with the rail's, not with this curve's. */

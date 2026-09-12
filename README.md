@@ -157,26 +157,97 @@ pasa las dos URLs. Ver `docs/miniaturas.md` para el banco de pruebas.
 
 La parte más delicada del código, y donde se concentran los bugs visuales.
 
-`.track` es una fila flex con `gap: 2px` y un `.segment` por sección, cada uno
-con `flexGrow: span`. **Flex reparte el ancho contra la suma de los spans, no
-contra `duration`** — el rail siempre llena el track, sea cual sea la duración.
+**Un solo eje: `time / duration`.** El rail es un rectángulo continuo. Curva,
+relleno, playhead, clic, guía de hover, handles de loop y hitboxes miden el
+mismo porcentaje: `axisAt()` en `HeatmapProgress.tsx`. Las divisiones entre
+secciones son marcas de 2px **encima** de ese eje (`gapMask`), no huecos flex
+que le resten ancho.
 
-Cualquier cosa posicionada sobre el rail tiene que usar ese mismo eje. Por eso
-`railPosition()` en `HeatmapProgress.tsx` calcula posiciones como fracción de
-los spans sumados más los gaps ya pasados, en vez de un `time/duration` directo
-que se desplaza hasta `(n-1)*2px`.
+> Antes el rail era una fila de pastillas con `gap: 2px`. La curva ocupaba el
+> 100% del contenedor y el relleno ocupaba `100% − (n−1)×2px`. Un traductor
+> (`railPosition`) intentaba compensar; un hueco fantasma de 0.04s —el mock
+> dice 21.9s, el MP4 dura 21.94s— costaba un gap de 2px y desplazaba todo el
+> rail bajo una curva que no se movía. Un solo rectángulo elimina esa clase
+> de bug: no hay gap que robar.
 
-El playhead es la excepción deliberada: vive *dentro* del segmento y reusa la
-misma expresión `local(shown)` que dimensiona el relleno, porque flex redondea
-cada caja a su manera y cualquier cálculo hecho desde `.wrap` cae una fracción
-de píxel fuera.
+Un tramo sin sección sigue siendo video —se puede hacer seek ahí— pero no es
+una sección: sin nombre, sin etiqueta, sin marca de 2px (un hueco es una
+ausencia, no una frontera), y no aparece en la lista ni en la navegación con
+`,` / `.`. `coverageGaps()` lo pinta un poco más oscuro. `sectionCoverage`
+sigue midiendo lo realmente descrito.
 
 La curva del heatmap es un SVG en `.wrap` con `viewBox` fijo `0 0 100 100` y
-`preserveAspectRatio="none"`. Necesita los 44px de `.wrap` para tener altura;
-moverla dentro de un `.segment` de 4px la colapsa.
+`preserveAspectRatio="none"`. El clip de progreso usa el mismo `axisAt()` que
+el relleno. Necesita los 44px de `.wrap` para tener altura.
 
-Los tests de `tests/heatmap.test.ts` fijan esta geometría, varios leyendo el CSS
-directamente. Si se mueven, la barra se desalinea.
+Los tests de `tests/heatmap.test.ts` y `tests/railaxis.test.ts` fijan este eje.
+Si se mueven, la barra se desalinea.
+
+## Aislamiento de estilos en WordPress
+
+El player se monta dentro del tema del sitio, que aplica sus propias reglas a
+`button`, `a`, `input`, `svg` y `ul/li`. Medido con **Astra + Elementor**: el
+botón de cerrar de los paneles salía como un rectángulo sólido de 62x40 con el
+icono perdido dentro, porque Astra pintaba `background: #e6e6e6`, `color: #fff`
+y, desde su `<style>` inline, `padding: 15px 30px`.
+
+El reset vive en `src/ui/Player.module.css`, bajo `.root`. **No hay reset
+global** y **no hay un solo `!important`** en el proyecto.
+
+### La estrategia: un reset partido en dos mitades
+
+El reset tiene que ganar al tema pero **perder** ante las clases del propio
+player (`.close` y compañía, con especificidad `(0,1,0)`). Ese techo es toda la
+dificultad, y es lo que parte el reset:
+
+| Mitad | Selector | Especificidad | Qué lleva |
+|---|---|---|---|
+| 1 | `.root button` | `(0,1,1)` | Lo que ningún componente pinta: `min-height`, `text-transform`, `appearance`, `padding`, `box-shadow`, tipografía |
+| 2 | `:where(.root button)` | `(0,0,0)` | Lo que los componentes sí pintan: `background`, `border`, `border-radius`, `color` |
+
+La mitad 2 gana al tema **por orden de carga** (la hoja del plugin se encola
+después), y pierde ante cualquier clase de componente, que es lo que se busca.
+La mitad 1 gana por especificidad, porque el `<style>` inline de Astra se emite
+*después* de la hoja del plugin y ahí el orden ya no defiende nada.
+
+**Ese era el bug**: el reset original ponía *todas* las propiedades en la mitad
+2, con especificidad cero, así que `min-height`, `text-transform` y `padding` no
+tenían con qué ganar.
+
+### Alternativas descartadas (medidas, no razonadas)
+
+- **`@layer`.** La respuesta de manual, y equivocada aquí: una regla *sin capa*
+  gana a cualquier regla capada, sin importar la especificidad — y el CSS de
+  Astra no está capado. Con el reset dentro de una capa, el `padding` seguía
+  siendo el de Astra. Capar también los componentes no ayuda: entonces el tema
+  les gana a ellos.
+- **`!important` dentro de una capa.** Gana al tema, pero también a los
+  componentes, que necesitarían su propio `!important`. Es la escalada que se
+  quiere evitar.
+- **Un reset fuerte en `.root.root`** `(0,2,1)`. Gana al tema, pero aplasta el
+  fondo y el borde de `.close`: medido, el botón salía transparente en **los dos
+  entornos**.
+
+Si un componente futuro necesita `padding` en un `button`, tiene que escribir
+`.root .algo` `(0,2,0)` para superar la mitad 1.
+
+### Iconos
+
+Los componentes pintan con `currentColor`, que está bien; el riesgo es de dónde
+sale ese color. Astra ponía `color: #fff` en todo botón, así que `currentColor`
+resolvía a blanco sobre fondo claro. La mitad 1 devuelve `color: inherit` (que
+llega hasta `--aivp-text` de `.root`) y `.root svg` fija un token de respaldo.
+
+### Verificación
+
+El banco de pruebas **no sirve** para esto: ahí no hay tema que interfiera. Hay
+que comparar contra el WordPress real, control por control, con el tema y el
+page builder del cliente activos — barra de controles, panel de velocidad,
+panel de loop, menú de ajustes, selector de calidad, botones de cerrar,
+tooltips, lista de secciones, indicador de práctica y fondo de subtítulos.
+
+El criterio es que el estilo computado de cada control sea **idéntico** en los
+dos entornos.
 
 ## Temas
 

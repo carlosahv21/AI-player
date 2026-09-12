@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { gapMask, heatArea, railPosition } from "../src/ui/HeatmapProgress";
+import {
+  axisAt,
+  gapMask,
+  heatArea,
+  sectionCuts,
+} from "../src/ui/HeatmapProgress";
 import { sanitizeHeatmap } from "../src/ui/hooks/useVideoPayload";
 import type { VideoPayload } from "../src/core/types";
 
@@ -32,12 +37,12 @@ describe("heatmap placement", () => {
 
   // The curve owns the band ABOVE the rail, where .played used to sit, and it
   // grows upward from the rail's top edge. Anchoring by `top` would push the
-  // shape down through the rail when a segment grows on hover (4px -> 9px).
-  it("anchors above the rail by bottom, clearing the tallest segment", () => {
+  // shape down through the rail when the bar grows on hover (4px -> 8px).
+  it("anchors above the rail by bottom, clearing the tallest bar", () => {
     const bottom = /bottom:\s*calc\(50%\s*\+\s*(\d+)px\)/.exec(css);
     expect(bottom, "the SVG must be anchored by bottom: calc(50% + Npx)").toBeTruthy();
-    // half of the 9px hovered segment
-    expect(Number(bottom![1])).toBeGreaterThanOrEqual(5);
+    // half of the 8px hovered bar
+    expect(Number(bottom![1])).toBeGreaterThanOrEqual(4);
     expect(css).not.toMatch(/^\s*top:/m);
   });
 
@@ -48,84 +53,44 @@ describe("heatmap placement", () => {
   });
 });
 
-// The rail is a flex row with a 2px gap, so its segments share
-// `100% - (n-1)*2px`, not the full width. Positioning anything by a plain
-// time/duration percentage drifts right by up to (n-1)*2px — which is exactly
-// the playhead sitting past the blue edge, and the mask's cuts missing the
-// rail's gaps.
-describe("railPosition", () => {
-  const four = [
-    { start: 0, end: 25 },
-    { start: 25, end: 50 },
-    { start: 50, end: 75 },
-    { start: 75, end: 100 },
-  ];
-
-  it("is a plain percentage when there are no gaps to account for", () => {
-    expect(railPosition(50, 100, [])).toBe("50%");
-    expect(railPosition(50, 100, [{ start: 0, end: 100 }])).toBe("50%");
+// One rectangle, one axis. A time's pixel is time/duration of the wrap —
+// the same number the fill, the playhead, the clip, the seek and the handles
+// all use. Marks sit on that axis; they do not take width out of it.
+describe("axisAt", () => {
+  it("is time/duration as a percentage", () => {
+    expect(axisAt(50, 100)).toBe("50%");
+    expect(axisAt(50, 60)).toBe(`${(50 / 60) * 100}%`);
   });
 
-  it("subtracts the gaps from the track and adds back the ones passed", () => {
-    // 50 is section 3's own start, so only ONE gap lies strictly left of it:
-    // the gap that opens AT 50 is still ahead. 3 gaps total, hence the -6px.
-    expect(railPosition(50, 100, four)).toBe("calc(50 * (100% - 6px) / 100 + 2px)");
-    // mid-section, both earlier gaps are behind
-    expect(railPosition(60, 100, four)).toBe("calc(60 * (100% - 6px) / 100 + 4px)");
+  it("does not care how many sections there are", () => {
+    // the old translator shifted by (n-1)*2px; this one cannot
+    expect(axisAt(50, 100)).toBe("50%");
+    expect(axisAt(0, 100)).toBe("0%");
+    expect(axisAt(100, 100)).toBe("100%");
   });
 
-  it("starts at the origin and never overshoots the end", () => {
-    expect(railPosition(0, 100, four)).toBe("calc(0 * (100% - 6px) / 100 + 0px)");
-    // the last position is the full track plus every gap, i.e. exactly 100%
-    expect(railPosition(100, 100, four)).toBe("calc(100 * (100% - 6px) / 100 + 6px)");
-  });
-
-  // A section's start sits at the CLOSING edge of the previous segment, before
-  // the gap that follows. Counting that gap as already passed pushed every
-  // boundary a full GAP_PX right — the heatmap's first cut landing clear of
-  // the rail's first divider.
-  it("puts a boundary before its own gap, not after it", () => {
-    // section 2 starts at 25: one gap precedes it, and it is NOT yet passed
-    expect(railPosition(25, 100, four)).toBe("calc(25 * (100% - 6px) / 100 + 0px)");
-    // a hair later and that same gap is behind us
-    expect(railPosition(25.001, 100, four)).toContain("+ 2px)");
-  });
-
-  // flexGrow is the span, so the share is of the summed spans, not of the
-  // duration. Identical while the sections tile the video; drifts the moment
-  // they leave a hole or stop short.
-  it("shares the track by summed spans, the way flexGrow does", () => {
-    const holed = [
-      { start: 0, end: 10 },
-      { start: 20, end: 40 },
-      { start: 50, end: 60 },
-    ];
-    // 40s covered of a 60s video: the second boundary is 30/40 of the track
-    expect(railPosition(50, 60, holed)).toBe("calc(75 * (100% - 4px) / 100 + 2px)");
-    // and a time inside a hole counts only the seconds actually covered
-    expect(railPosition(45, 60, holed)).toBe(railPosition(40, 60, holed));
-  });
-
-  it("ignores sections that carry no span at all", () => {
-    expect(railPosition(5, 10, [{ start: 0, end: 0 }, { start: 0, end: 0 }])).toBe(
-      "0px",
+  it("advances through a hole instead of stalling in it", () => {
+    expect(axisAt(45, 60)).not.toBe(axisAt(40, 60));
+    expect(Number.parseFloat(axisAt(45, 60))).toBeGreaterThan(
+      Number.parseFloat(axisAt(40, 60)),
     );
   });
 
   it("clamps a time outside the video instead of running off the rail", () => {
-    expect(railPosition(-10, 100, four)).toBe(railPosition(0, 100, four));
-    expect(railPosition(999, 100, four)).toBe(railPosition(100, 100, four));
+    expect(axisAt(-10, 100)).toBe(axisAt(0, 100));
+    expect(axisAt(999, 100)).toBe(axisAt(100, 100));
   });
 
   it("survives a duration of zero before metadata arrives", () => {
-    expect(railPosition(0, 0, four)).toBe("0px");
+    expect(axisAt(0, 0)).toBe("0%");
+    expect(axisAt(5, 0)).toBe("0%");
   });
 
   // Both the curve and the rail start at the container's x=0: the SVG is
   // left:0/width:100% with no padding, and the path opens at M0. Nothing may
   // introduce an offset at the origin.
   it("puts the origin at a true zero, with no gap added in front", () => {
-    expect(railPosition(0, 100, four)).toMatch(/\+ 0px\)$/);
+    expect(axisAt(0, 100)).toBe("0%");
     expect(heatArea([0.5, 0.5]).startsWith("M0,")).toBe(true);
     const css = readFileSync("src/ui/HeatmapProgress.module.css", "utf8");
     const svg = /\.svg\s*\{[^}]*\}/s.exec(css)![0];
@@ -134,13 +99,40 @@ describe("railPosition", () => {
   });
 });
 
+describe("sectionCuts", () => {
+  it("marks only the joints between touching named sections", () => {
+    expect(
+      sectionCuts(
+        [
+          { start: 0, end: 10 },
+          { start: 10, end: 30 },
+          { start: 30, end: 60 },
+        ],
+        60,
+      ),
+    ).toEqual([axisAt(10, 60), axisAt(30, 60)]);
+  });
+
+  it("skips a hole — an absence is not a joint", () => {
+    expect(
+      sectionCuts(
+        [
+          { start: 0, end: 10 },
+          { start: 20, end: 40 },
+        ],
+        60,
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("gapMask", () => {
   it("is skipped entirely when there is no interior boundary", () => {
     expect(gapMask([])).toBeUndefined();
   });
 
-  // Flex puts the gap AFTER the segment, so the cut starts at the edge and
-  // runs right. Centring it on the edge would sit 1px left of the rail's gap.
+  // The mark starts at the joint and runs right. Centring it would sit 1px
+  // left of the rail's own cut.
   it("cuts from the edge rightward, not centred on it", () => {
     const mask = gapMask(["25%"], 2);
     expect(mask).toContain("#000 25%");
@@ -151,11 +143,8 @@ describe("gapMask", () => {
     expect(mask).not.toContain("1px)");
   });
 
-  it("takes the corrected lengths railPosition produces", () => {
-    const edge = railPosition(50, 100, [
-      { start: 0, end: 50 },
-      { start: 50, end: 100 },
-    ]);
+  it("takes the same axis percentages the rail uses", () => {
+    const edge = axisAt(50, 100);
     const mask = gapMask([edge])!;
     expect(mask).toContain(`transparent ${edge}`);
     expect(mask).toContain(`transparent calc(${edge} + 2px)`);
@@ -178,20 +167,16 @@ describe("playhead", () => {
   const tsx = readFileSync("src/ui/ProgressBar.tsx", "utf8");
   const block = /\.playhead\s*\{[^}]*\}/s.exec(css)?.[0] ?? "";
 
-  // The fix for the micro-drift: flex rounds each segment's box its own way,
-  // so ANY position computed in .wrap's coordinates — however correct the
-  // arithmetic — lands a fraction off the fill's edge. Sharing the parent and
-  // the expression is what makes them the same pixel.
-  it("rides the segment and reuses the fill's own expression", () => {
+  // One rectangle: the needle and the fill both take axisAt(shown). There is
+  // no flex box to round against, so sharing the expression is enough.
+  it("reuses the fill's own axis expression", () => {
     expect(block, "the rule belongs with the rail, not the curve").toBeTruthy();
-    // the needle is placed by the very call that sizes the fill
     expect(tsx).toMatch(/styles\.playhead/);
-    expect(tsx).toMatch(/left:\s*local\(shown\)/);
-    // .played is sized by the very same call
-    expect(tsx).toMatch(/styles\.played\}\s*style=\{\{\s*width:\s*local\(shown\)/);
+    expect(tsx).toMatch(/left:\s*at\(shown\)/);
+    expect(tsx).toMatch(/styles\.played\}\s*style=\{\{\s*width:\s*at\(shown\)/);
   });
 
-  it("is not positioned in .wrap by a calc() that re-derives flex's maths", () => {
+  it("is not drawn by the heatmap", () => {
     const heatmap = readFileSync("src/ui/HeatmapProgress.tsx", "utf8");
     expect(heatmap).not.toMatch(/styles\.playhead/);
     expect(heatmap).not.toMatch(/<rect[\s/>]/);
@@ -223,23 +208,16 @@ describe("playhead", () => {
     expect(tsx).not.toMatch(/atOrigin/);
   });
 
-  it("draws once, in the segment holding the current time", () => {
-    // both bounds, or a needle appears in every segment after the playhead
-    expect(tsx).toMatch(/shown >= seg\.start/);
-    expect(tsx).toMatch(/shown < seg\.end/);
-    // and the final frame still shows one: shown === duration is nobody's < end
-    expect(tsx).toMatch(/seg === segments\[segments\.length - 1\]/);
+  it("draws once", () => {
+    expect(tsx.match(/styles\.playhead/g)).toHaveLength(1);
   });
 
-  // .segment animates 4px -> 9px on hover. A needle anchored to that box's
-  // EDGE slid 2.5px up with it while the curve, which lives in .wrap, stayed
-  // put — the one element meant to tie the two together drifting between them.
-  // The centre is the only line a height change cannot move.
-  it("takes its vertical anchor from the segment's centre, not its edge", () => {
+  // .track is a 12px box that never changes height. A needle anchored to
+  // .bar's EDGE would slide when the bar grows on hover; the track centre
+  // cannot move.
+  it("takes its vertical anchor from the track's centre, not the bar's edge", () => {
     expect(block).toMatch(/bottom:\s*50%/);
-    // the edge-anchored form, not the margin that offsets from the centre
     expect(block).not.toMatch(/(^|[^-])\bbottom:\s*-?\d+px/m);
-    // half the 4px rail, so the foot rests on the rail's underside
     expect(block).toMatch(/margin-bottom:\s*-2px/);
   });
 
@@ -272,20 +250,22 @@ describe("the played fill", () => {
     expect(block).not.toMatch(/linear-gradient/);
   });
 
-  // Requirement: the section divisions must survive at any progress. They do
-  // because each fill is clamped inside its own segment and .track's gap
-  // between segments is never painted.
-  it("is clamped per segment so the track gap stays unpainted", () => {
+  // Section joints are a mask on the one rectangle, not a flex gap that
+  // steals width. The fill can be continuous underneath; the marks punch
+  // through at the same percentages the curve uses.
+  it("cuts joints with a mask, not a flex gap", () => {
     const tsx = readFileSync("src/ui/ProgressBar.tsx", "utf8");
-    expect(tsx).toMatch(/styles\.played\}\s*style=\{\{\s*width:\s*local\(shown\)/);
-    expect(css).toMatch(/\.track\s*\{[^}]*gap:\s*2px/s);
+    expect(tsx).toMatch(/gapMask\(sectionCuts/);
+    expect(tsx).toMatch(/styles\.played\}\s*style=\{\{\s*width:\s*at\(shown\)/);
+    expect(css).not.toMatch(/\.track\s*\{[^}]*gap:/s);
   });
 });
 
 // The samples cross a trust boundary: WordPress serves them, and a filter or a
 // hand-edited meta can put anything in the array. One NaN reaching the `d`
-// attribute blanks the entire curve, so bad samples are dropped individually
-// and logged; only a majority-invalid array voids the curve outright.
+// attribute blanks the entire curve, so bad samples are mended in place and
+// logged; only a majority-invalid array voids the curve outright. In place and
+// not filtered out, because a sample's index is its X coordinate.
 describe("sanitizeHeatmap", () => {
   const base = { duration: 100 } as VideoPayload;
 
@@ -294,18 +274,25 @@ describe("sanitizeHeatmap", () => {
     expect(out.heatmap).toEqual([0.25, 1, 0.5]);
   });
 
-  it("drops non-finite values instead of passing NaN to the path", () => {
+  it("mends non-finite values instead of passing NaN to the path", () => {
     // one bad sample in six: the curve survives on the rest, which is the
-    // whole point — a single NaN used to void every good sample with it
+    // whole point — a single NaN used to void every good sample with it.
+    // The hole keeps its slot, bridged from 20 and 30, because the index IS
+    // the time axis; see tests/heatgeometry.test.ts.
     const dirty = [10, 20, NaN, 30, 40, 20] as unknown as number[];
     expect(sanitizeHeatmap({ ...base, heatmap: dirty }).heatmap).toEqual([
-      0.25, 0.5, 0.75, 1, 0.5,
+      0.25, 0.5, 0.625, 0.75, 1, 0.5,
     ]);
   });
 
   it("keeps the good samples with mixed junk, up to half the array", () => {
     const dirty = [10, "x", null, 20] as unknown as number[];
-    expect(sanitizeHeatmap({ ...base, heatmap: dirty }).heatmap).toEqual([0.5, 1]);
+    const out = sanitizeHeatmap({ ...base, heatmap: dirty }).heatmap!;
+    // the two holes are bridged between 10 and 20, keeping all four slots
+    expect(out).toHaveLength(4);
+    [0.5, 2 / 3, 5 / 6, 1].forEach((want, i) => {
+      expect(out[i]).toBeCloseTo(want, 10);
+    });
   });
 
   it("discards the whole curve when more than half is invalid", () => {
