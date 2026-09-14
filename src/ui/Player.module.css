@@ -100,6 +100,23 @@
 }
 
 /*
+ * WordPress: `.entry-content button` is (0,1,1) and beats `.root { font }`
+ * plus `font-family: inherit` on the button. Astra then paints Myriad /
+ * the theme stack on Espejo, Loop, Velocidad — the labels that read as
+ * "another typeface". `[data-aivp-theme].root button` is (0,2,1).
+ */
+:global([data-aivp-theme]).root,
+:global([data-aivp-theme]).root button,
+:global([data-aivp-theme]).root a,
+:global([data-aivp-theme]).root input,
+:global([data-aivp-theme]).root select,
+:global([data-aivp-theme]).root h2,
+:global([data-aivp-theme]).root span,
+:global([data-aivp-theme]).root b {
+  font-family: var(--aivp-font);
+}
+
+/*
  * HALF 2 — properties the components DO paint: background, border, radius,
  * colour.
  *

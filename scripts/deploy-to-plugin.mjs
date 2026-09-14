@@ -1,6 +1,6 @@
 // Copies the WordPress bundle into the plugin's assets/ folder.
 // Override the destination with AIVP_PLUGIN_DIR.
-import { copyFile, mkdir, stat } from "node:fs/promises";
+import { copyFile, mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,4 +41,14 @@ for (const file of FILES) {
   }
   await copyFile(from, resolve(assetsDir, file));
   console.log(`copied ${file} -> ${resolve(assetsDir, file)}`);
+}
+
+const fontsFrom = resolve(buildDir, "fonts");
+if (await exists(fontsFrom)) {
+  const fontsTo = resolve(assetsDir, "fonts");
+  await mkdir(fontsTo, { recursive: true });
+  for (const file of await readdir(fontsFrom)) {
+    await copyFile(resolve(fontsFrom, file), resolve(fontsTo, file));
+    console.log(`copied fonts/${file}`);
+  }
 }
