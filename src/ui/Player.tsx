@@ -237,6 +237,7 @@ function PlayerInner({ theme }: { theme: AivpTheme }) {
       {offer ? (
         <LoopOfferBanner
           loop={offer.loop}
+          resumeAt={offer.resumeAt}
           onAccept={acceptOffer}
           onDismiss={dismissOffer}
         />

@@ -137,3 +137,34 @@ describe("debounced writes", () => {
     vi.useRealTimers();
   });
 });
+
+/*
+ * The player used to seek to the saved position on its own. A video that
+ * opened at 2:29 with no explanation read as a bug, and there was no way
+ * back to the start short of dragging the bar. The position is now offered
+ * the way the loop always was, so these pin the boundary between "worth
+ * offering" and "not".
+ */
+describe("resume is offered, not applied", () => {
+  it("offers a position in the middle of the video", () => {
+    expect(resumePosition(149, 317)).toBe(149);
+  });
+
+  it("ignores a position in the opening seconds", () => {
+    // Nothing to resume: the viewer would be sent where they already are.
+    expect(resumePosition(9.9, 317)).toBe(0);
+    expect(resumePosition(0, 317)).toBe(0);
+  });
+
+  it("ignores a position near the end", () => {
+    // Resuming here would drop the viewer onto the credits.
+    expect(resumePosition(300, 317)).toBe(0);
+    expect(resumePosition(317, 317)).toBe(0);
+  });
+
+  it("survives nonsense without proposing a seek", () => {
+    expect(resumePosition(NaN, 317)).toBe(0);
+    expect(resumePosition(149, NaN)).toBe(0);
+    expect(resumePosition(Infinity, 317)).toBe(0);
+  });
+});
